@@ -28,6 +28,8 @@ import 'package:handyman_provider_flutter/models/profile_update_response.dart';
 import 'package:handyman_provider_flutter/models/provider_document_list_response.dart';
 import 'package:handyman_provider_flutter/models/provider_info_model.dart';
 import 'package:handyman_provider_flutter/models/provider_subscription_model.dart';
+import 'package:handyman_provider_flutter/models/product_model.dart';
+import 'package:handyman_provider_flutter/models/product_order_model.dart';
 import 'package:handyman_provider_flutter/models/register_response.dart';
 import 'package:handyman_provider_flutter/models/search_list_response.dart';
 import 'package:handyman_provider_flutter/models/service_address_response.dart';
@@ -100,7 +102,9 @@ Future<void> logout(BuildContext context) async {
                 children: [
                   AppButton(
                     child: Text(languages.lblNo, style: boldTextStyle()),
-                    color: appStore.isDarkMode ? context.scaffoldBackgroundColor : context.cardColor,
+                    color: appStore.isDarkMode
+                        ? context.scaffoldBackgroundColor
+                        : context.cardColor,
                     elevation: 0,
                     onTap: () {
                       finish(context);
@@ -121,7 +125,8 @@ Future<void> logout(BuildContext context) async {
                           toast(e.toString());
                         });
                         await clearPreferences();
-                        if (appConfigurationStore.isInAppPurchaseEnable) await inAppPurchaseService.logoutToRevenueCate();
+                        if (appConfigurationStore.isInAppPurchaseEnable)
+                          await inAppPurchaseService.logoutToRevenueCate();
 
                         appStore.setLoading(false);
 
@@ -142,7 +147,9 @@ Future<void> logout(BuildContext context) async {
             ],
           ).paddingSymmetric(horizontal: 16, vertical: 24),
           Observer(
-            builder: (_) => LoaderWidget().withSize(width: 60, height: 60).visible(appStore.isLoading),
+            builder: (_) => LoaderWidget()
+                .withSize(width: 60, height: 60)
+                .visible(appStore.isLoading),
           ),
         ],
       );
@@ -185,7 +192,8 @@ Future<void> clearPreferences() async {
   await appStore.setPlanEndDate('');
   await appStore.setTester(false);
   await appStore.setActiveRevenueCatIdentifier('');
-  await appStore.setProviderCurrentSubscriptionPlan(ProviderSubscriptionModel());
+  await appStore
+      .setProviderCurrentSubscriptionPlan(ProviderSubscriptionModel());
   await removeKey(IS_SUBSCRIBED_FOR_PUSH_NOTIFICATION);
 
   appStore.setUserWalletAmount();
@@ -233,18 +241,21 @@ Future<List<ZoneModel>> getZoneList({
   }
 }
 
-Future<RegisterResponse> registerUser(Map<String, Object?> request, {List<Documents>? imageFile}) async {
+Future<RegisterResponse> registerUser(Map<String, Object?> request,
+    {List<Documents>? imageFile}) async {
   MultipartRequest multiPartRequest = await getMultiPartRequest('register');
 
   multiPartRequest.fields.addAll(await getMultipartFields(val: request));
 
   if (imageFile.validate().isNotEmpty) {
     // Convert List<Documents> to List<File>
-    List<File> files = imageFile!.map((doc) => File(doc.filePath.validate())).toList();
+    List<File> files =
+        imageFile!.map((doc) => File(doc.filePath.validate())).toList();
     multiPartRequest.files.addAll(
       await getMultipartImages(files: files, name: 'provider_document_'),
     );
-    multiPartRequest.fields[AddServiceKey.attachmentCount] = imageFile.validate().length.toString();
+    multiPartRequest.fields[AddServiceKey.attachmentCount] =
+        imageFile.validate().length.toString();
   }
 
   log("${multiPartRequest.fields}");
@@ -332,7 +343,8 @@ Future<void> saveUserData(UserData data) async {
     await appStore.setCityId(data.cityId.validate());
     await appStore.setProviderId(data.providerId.validate());
 
-    if (data.serviceAddressId != null) await appStore.setServiceAddressId(data.serviceAddressId!);
+    if (data.serviceAddressId != null)
+      await appStore.setServiceAddressId(data.serviceAddressId!);
 
     await appStore.setCreatedAt(data.createdAt.validate());
 
@@ -462,13 +474,22 @@ Future<List<CityListResponse>> getCityList(Map request) async {
 //endregion
 
 //region Category API
-Future<CategoryResponse> getCategoryList({String perPage = '', String? languageCode}) async {
+Future<CategoryResponse> getCategoryList({
+  String perPage = '',
+  String? languageCode,
+  String serviceType = '',
+}) async {
+  String serviceTypeParam = serviceType.validate().isNotEmpty
+      ? '&type=$serviceType&service_type=$serviceType'
+      : '';
   return CategoryResponse.fromJson(
     await handleResponse(
       await buildHttpResponse(
-        'category-list?per_page=$perPage',
+        'category-list?per_page=$perPage$serviceTypeParam',
         method: HttpMethodType.GET,
-        header: languageCode != null ? buildHeaderTokensForLanguage(languageCode) : null,
+        header: languageCode != null
+            ? buildHeaderTokensForLanguage(languageCode)
+            : null,
       ),
     ),
   );
@@ -476,15 +497,26 @@ Future<CategoryResponse> getCategoryList({String perPage = '', String? languageC
 //endregion
 
 //region SubCategory Api
-Future<CategoryResponse> getSubCategoryList({required int catId, String? languageCode}) async {
+Future<CategoryResponse> getSubCategoryList({
+  required int catId,
+  String? languageCode,
+  String serviceType = '',
+}) async {
   String categoryId = catId != -1 ? "category_id=$catId" : "";
-  String perPage = catId != -1 ? '&per_page=$PER_PAGE_ITEM_ALL' : '?per_page=$PER_PAGE_ITEM_ALL';
+  String perPage = catId != -1
+      ? '&per_page=$PER_PAGE_ITEM_ALL'
+      : '?per_page=$PER_PAGE_ITEM_ALL';
+  String serviceTypeParam = serviceType.validate().isNotEmpty
+      ? '&type=$serviceType&service_type=$serviceType'
+      : '';
   return CategoryResponse.fromJson(
     await handleResponse(
       await buildHttpResponse(
-        'subcategory-list?$categoryId$perPage',
+        'subcategory-list?$categoryId$perPage$serviceTypeParam',
         method: HttpMethodType.GET,
-        header: languageCode != null ? buildHeaderTokensForLanguage(languageCode) : null,
+        header: languageCode != null
+            ? buildHeaderTokensForLanguage(languageCode)
+            : null,
       ),
     ),
   );
@@ -568,7 +600,8 @@ Future<DashboardResponse> providerDashboard({
     }
 
     // Sync new configurations for secret keys
-    if (forceSyncAppConfigurations) await setValue(LAST_APP_CONFIGURATION_SYNCED_TIME, 0);
+    if (forceSyncAppConfigurations)
+      await setValue(LAST_APP_CONFIGURATION_SYNCED_TIME, 0);
     getAppConfigurations();
 
     appStore.setLoading(false);
@@ -614,7 +647,8 @@ Future<HandymanDashBoardResponse> handymanDashboard({
       'handyman-dashboard',
       method: HttpMethodType.GET,
     );
-    final data = HandymanDashBoardResponse.fromJson(await handleResponse(response));
+    final data =
+        HandymanDashBoardResponse.fromJson(await handleResponse(response));
 
     cachedHandymanDashboardResponse = data;
 
@@ -630,7 +664,8 @@ Future<HandymanDashBoardResponse> handymanDashboard({
     }
 
     // Sync new configurations for secret keys
-    if (forceSyncAppConfigurations) await setValue(LAST_APP_CONFIGURATION_SYNCED_TIME, 0);
+    if (forceSyncAppConfigurations)
+      await setValue(LAST_APP_CONFIGURATION_SYNCED_TIME, 0);
     getAppConfigurations();
 
     appStore.setLoading(false);
@@ -703,7 +738,8 @@ Future<List<UserData>> getProviderList({
 }) async {
   try {
     String search = keyword.validate().isNotEmpty ? '&keyword=$keyword' : '';
-    String providerStatus = status.validate().isNotEmpty ? "&status=$status" : "";
+    String providerStatus =
+        status.validate().isNotEmpty ? "&status=$status" : "";
 
     var res = UserListResponse.fromJson(
       await handleResponse(
@@ -718,7 +754,7 @@ Future<List<UserData>> getProviderList({
 
     list.addAll(res.data.validate());
 
-    lastPageCallback?.call(res.data.validate().length != PER_PAGE_ITEM);
+    lastPageCallback?.call(res.data.validate().length != perPage);
 
     appStore.setLoading(false);
   } catch (e) {
@@ -834,10 +870,12 @@ Future<ServiceDetailResponse> getServiceDetail(Map request) async {
       ),
     ),
   );
-  if (!listOfCachedData.any((element) => element?.$1 == request['service_id'])) {
+  if (!listOfCachedData
+      .any((element) => element?.$1 == request['service_id'])) {
     listOfCachedData.add((request['service_id'], res));
   } else {
-    int index = listOfCachedData.indexWhere((element) => element?.$1 == request['service_id']);
+    int index = listOfCachedData
+        .indexWhere((element) => element?.$1 == request['service_id']);
     listOfCachedData[index] = (request['service_id'], res);
   }
 
@@ -878,7 +916,8 @@ Future<void> addServiceMultiPart({
 
   if (serviceAddressList.validate().isNotEmpty) {
     for (int i = 0; i < serviceAddressList!.length; i++) {
-      multiPartRequest.fields[AddServiceKey.providerZoneId] = jsonEncode(serviceAddressList);
+      multiPartRequest.fields[AddServiceKey.providerZoneId] =
+          jsonEncode(serviceAddressList);
     }
   }
 
@@ -889,7 +928,8 @@ Future<void> addServiceMultiPart({
         name: AddServiceKey.serviceAttachment,
       ),
     );
-    multiPartRequest.fields[AddServiceKey.attachmentCount] = imageFile.validate().length.toString();
+    multiPartRequest.fields[AddServiceKey.attachmentCount] =
+        imageFile.validate().length.toString();
   }
 
   log("${multiPartRequest.fields}");
@@ -995,7 +1035,8 @@ Future<List<BookingData>> getBookingList(
   String shopId = '',
   required List<BookingData> bookings,
   Function(bool)? lastPageCallback,
-  Function(String totalEarning, PaymentBreakdown paymentBreakdown)? paymentBreakdownCallBack,
+  Function(String totalEarning, PaymentBreakdown paymentBreakdown)?
+      paymentBreakdownCallBack,
 }) async {
   try {
     BookingListResponse res;
@@ -1003,31 +1044,42 @@ Future<List<BookingData>> getBookingList(
     String serviceIds = serviceId.isNotEmpty ? 'service_id=$serviceId&' : '';
     String dateStart = dateFrom.isNotEmpty ? 'date_from=$dateFrom&' : '';
     String dateEnd = dateTo.isNotEmpty ? '&date_to=$dateTo&' : '';
-    String customerIds = customerId.isNotEmpty ? 'customer_id=$customerId&' : '';
-    String providerIds = providerId.isNotEmpty ? 'provider_id=$providerId&' : '';
-    String handymanIds = handymanId.isNotEmpty ? 'handyman_id=$handymanId&' : '';
+    String customerIds =
+        customerId.isNotEmpty ? 'customer_id=$customerId&' : '';
+    String providerIds =
+        providerId.isNotEmpty ? 'provider_id=$providerId&' : '';
+    String handymanIds =
+        handymanId.isNotEmpty ? 'handyman_id=$handymanId&' : '';
     String status = bookingStatus.isNotEmpty ? 'status=$bookingStatus&' : '';
-    String paymentStatuss = paymentStatus.isNotEmpty ? 'payment_status=$paymentStatus&' : '';
-    String paymentTypes = paymentType.isNotEmpty ? 'payment_type=$paymentType&' : '';
+    String paymentStatuss =
+        paymentStatus.isNotEmpty ? 'payment_status=$paymentStatus&' : '';
+    String paymentTypes =
+        paymentType.isNotEmpty ? 'payment_type=$paymentType&' : '';
     String searchParam = searchText.isNotEmpty ? '&search=$searchText&' : '';
 
     String perPageItem = 'per_page=$perPage&';
     String pageCount = 'page=$page';
-    String handymanUserid = handymanUserId.isNotEmpty ? '&handyman_id=$handymanUserId' : '';
+    String handymanUserid =
+        handymanUserId.isNotEmpty ? '&handyman_id=$handymanUserId' : '';
 
     if (status == BOOKING_PAYMENT_STATUS_ALL) {
-      res = BookingListResponse.fromJson(await handleResponse(await buildHttpResponse('booking-list?per_page=$perPage&page=$page$searchParam', method: HttpMethodType.GET)));
+      res = BookingListResponse.fromJson(await handleResponse(
+          await buildHttpResponse(
+              'booking-list?per_page=$perPage&page=$page$searchParam',
+              method: HttpMethodType.GET)));
     } else {
-      res = BookingListResponse.fromJson(await handleResponse(await buildHttpResponse(
-          'booking-list?$serviceIds$dateStart$dateEnd$customerIds$providerIds$handymanIds$status$paymentStatuss$paymentTypes$searchParam$handymanUserid$shopIds$perPageItem$pageCount',
-          method: HttpMethodType.GET)));
+      res = BookingListResponse.fromJson(await handleResponse(
+          await buildHttpResponse(
+              'booking-list?$serviceIds$dateStart$dateEnd$customerIds$providerIds$handymanIds$status$paymentStatuss$paymentTypes$searchParam$handymanUserid$shopIds$perPageItem$pageCount',
+              method: HttpMethodType.GET)));
     }
 
     if (page == 1) bookings.clear();
     bookings.addAll(res.data.validate());
     lastPageCallback?.call(res.data.validate().length != PER_PAGE_ITEM);
 
-    if (res.totalEarning.validate().isNotEmpty && res.paymentBreakdown != null) {
+    if (res.totalEarning.validate().isNotEmpty &&
+        res.paymentBreakdown != null) {
       paymentBreakdownCallBack?.call(
         res.totalEarning.validate(),
         res.paymentBreakdown!,
@@ -1051,7 +1103,8 @@ Future<ServiceResponse> getAllServiceList({
   int? providerId,
   String perPage = '',
 }) async {
-  String providerIds = appStore.isLoggedIn ? 'provider_id=${appStore.userId}' : '';
+  String providerIds =
+      appStore.isLoggedIn ? 'provider_id=${appStore.userId}' : '';
   return ServiceResponse.fromJson(
     await handleResponse(
       await buildHttpResponse(
@@ -1094,19 +1147,24 @@ Future<SearchListResponse> getServicesList(
   String? req;
   String categoryIds = categoryId != -1 ? 'category_id=$categoryId&' : '';
   String searchPara = search.validate().isNotEmpty ? 'search=$search&' : '';
-  String subCategorys = subCategoryId != -1 ? 'subcategory_id=$subCategoryId&' : '';
+  String subCategorys =
+      subCategoryId != -1 ? 'subcategory_id=$subCategoryId&' : '';
   String pages = 'page=$page&';
   String perPages = 'per_page=$PER_PAGE_ITEM';
-  String providerIds = appStore.isLoggedIn ? 'provider_id=${appStore.userId}&' : '';
+  String providerIds =
+      appStore.isLoggedIn ? 'provider_id=${appStore.userId}&' : '';
   String serviceType = type.validate().isNotEmpty ? 'type=$type&' : "";
 
-  req = '?$categoryIds$providerIds$subCategorys$serviceType$searchPara$pages$perPages';
+  req =
+      '?$categoryIds$providerIds$subCategorys$serviceType$searchPara$pages$perPages';
   return SearchListResponse.fromJson(
     await handleResponse(
       await buildHttpResponse(
         'search-list$req',
         method: HttpMethodType.GET,
-        header: languageCode != null ? buildHeaderTokensForLanguage(languageCode) : null,
+        header: languageCode != null
+            ? buildHeaderTokensForLanguage(languageCode)
+            : null,
       ),
     ),
   );
@@ -1134,7 +1192,8 @@ Future<List<ServiceData>> getSearchList(
     String searchPara = search.validate().isNotEmpty
         ? 'search=${Uri.encodeComponent(search!)}&'
         : '';
-    String subCategorys = subCategoryId != -1 ? 'subcategory_id=$subCategoryId&' : '';
+    String subCategorys =
+        subCategoryId != -1 ? 'subcategory_id=$subCategoryId&' : '';
     String pages = 'page=$page&';
     String perPages = 'per_page=$perPage';
     String providerIds = providerId != -1 ? 'provider_id=$providerId&' : '';
@@ -1142,7 +1201,8 @@ Future<List<ServiceData>> getSearchList(
     String approvalStatus = status.isNotEmpty ? 'request_status=$status&' : "";
     String shopIds = shopId.isNotEmpty ? 'shop_id=$shopId&' : '';
 
-    req = '?$categoryIds$providerIds$subCategorys$serviceType$approvalStatus$searchPara$shopIds$pages$perPages';
+    req =
+        '?$categoryIds$providerIds$subCategorys$serviceType$approvalStatus$searchPara$shopIds$pages$perPages';
     res = SearchListResponse.fromJson(
       await handleResponse(
         await buildHttpResponse(
@@ -1180,14 +1240,18 @@ Future<BookingDetailResponse> bookingDetail(
   );
   callbackForStatus?.call(
     bookingDetailResponse.bookingDetail!.status.validate(),
-    bookingDetailResponse.handymanData?.isNotEmpty ?? false ? bookingDetailResponse.handymanData!.firstOrNull!.id.validate() : bookingDetailResponse.providerData!.id.validate(),
+    bookingDetailResponse.handymanData?.isNotEmpty ?? false
+        ? bookingDetailResponse.handymanData!.firstOrNull!.id.validate()
+        : bookingDetailResponse.providerData!.id.validate(),
   );
   appStore.setLoading(false);
   if (cachedBookingDetailList.any(
-    (element) => element.bookingDetail!.id == bookingDetailResponse.bookingDetail!.id,
+    (element) =>
+        element.bookingDetail!.id == bookingDetailResponse.bookingDetail!.id,
   )) {
     cachedBookingDetailList.removeWhere(
-      (element) => element.bookingDetail!.id == bookingDetailResponse.bookingDetail!.id,
+      (element) =>
+          element.bookingDetail!.id == bookingDetailResponse.bookingDetail!.id,
     );
   }
   cachedBookingDetailList.add(bookingDetailResponse);
@@ -1270,7 +1334,8 @@ Future<List<ZoneResponse>> getZoneWithPagination({
 
     zoneList.addAll(res.zoneListResponse.validate());
 
-    lastPageCallback?.call(res.zoneListResponse.validate().length != PER_PAGE_ITEM);
+    lastPageCallback
+        ?.call(res.zoneListResponse.validate().length != PER_PAGE_ITEM);
 
     appStore.setLoading(false);
   } catch (e) {
@@ -1574,10 +1639,13 @@ Future<List<PaymentSetting>> getPaymentGateways({
         method: HttpMethodType.GET,
       ),
     );
-    List<PaymentSetting> res = it.map((e) => PaymentSetting.fromJson(e)).toList();
+    List<PaymentSetting> res =
+        it.map((e) => PaymentSetting.fromJson(e)).toList();
 
-    if (!requireCOD) res.removeWhere((element) => element.type == PAYMENT_METHOD_COD);
-    if (!requireWallet) res.removeWhere((element) => element.type == PAYMENT_METHOD_FROM_WALLET);
+    if (!requireCOD)
+      res.removeWhere((element) => element.type == PAYMENT_METHOD_COD);
+    if (!requireWallet)
+      res.removeWhere((element) => element.type == PAYMENT_METHOD_FROM_WALLET);
 
     if (!appConfigurationStore.onlinePaymentStatus) {
       res.removeWhere(
@@ -1737,7 +1805,8 @@ Future<List<NotificationData>> getNotification(
       notificationList.clear();
     }
 
-    lastPageCallback?.call(res.notificationData.validate().length != PER_PAGE_ITEM);
+    lastPageCallback
+        ?.call(res.notificationData.validate().length != PER_PAGE_ITEM);
 
     notificationList.addAll(res.notificationData.validate());
     cachedNotifications = notificationList;
@@ -1754,7 +1823,8 @@ Future<List<NotificationData>> getNotification(
 Future<DocumentListResponse> getDocTypeList(String type) async {
   final response = DocumentListResponse.fromJson(
     await handleResponse(
-      await buildHttpResponse('document-list?type=$type', method: HttpMethodType.GET),
+      await buildHttpResponse('document-list?type=$type',
+          method: HttpMethodType.GET),
     ),
   );
   cachedDocumentListResponse = response;
@@ -1821,6 +1891,274 @@ Future<BaseResponseModel> deleteAccountCompletely() async {
 }
 //endregion
 
+//region Product API
+Future<List<ProductData>> getUserProductList({
+  int page = 1,
+  var perPage = PER_PAGE_ITEM,
+  required List<ProductData> products,
+  Function(bool)? lastPageCallback,
+  String search = '',
+  String serviceRequestStatus = '',
+  int? status,
+  String categoryId = '',
+  String subcategoryId = '',
+}) async {
+  try {
+    String params = '?per_page=$perPage&page=$page';
+    if (search.validate().isNotEmpty)
+      params += '&search=${Uri.encodeComponent(search)}';
+    if (serviceRequestStatus.validate().isNotEmpty)
+      params += '&service_request_status=$serviceRequestStatus';
+    if (status != null) params += '&status=$status';
+    if (categoryId.validate().isNotEmpty) params += '&category_id=$categoryId';
+    if (subcategoryId.validate().isNotEmpty)
+      params += '&subcategory_id=$subcategoryId';
+
+    ProductListResponse res = ProductListResponse.fromJson(
+      await handleResponse(
+        await buildHttpResponse('user-product-list$params',
+            method: HttpMethodType.GET),
+      ),
+    );
+
+    if (page == 1) products.clear();
+    products.addAll(res.data.validate());
+
+    lastPageCallback?.call(res.data.validate().length != perPage);
+    appStore.setLoading(false);
+    return products;
+  } catch (e) {
+    appStore.setLoading(false);
+    throw e;
+  }
+}
+
+Future<ProductDetailResponse> getProductDetail(Map request) async {
+  return ProductDetailResponse.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-detail',
+          request: request, method: HttpMethodType.POST),
+    ),
+  );
+}
+
+Future<BaseResponseModel> deleteProduct(int id) async {
+  return BaseResponseModel.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-delete',
+          request: {'id': id}, method: HttpMethodType.POST),
+    ),
+  );
+}
+
+Future<void> addEditProductMultiPart({
+  int productId = 0,
+  required Map<String, dynamic> data,
+  required List<int> serviceZones,
+  List<int> shopIds = const [],
+  List<File> images = const [],
+}) async {
+  MultipartRequest multiPartRequest = await getMultiPartRequest(
+      productId > 0 ? 'product-update' : 'product-save');
+
+  multiPartRequest.fields.addAll(await getMultipartFields(val: data));
+
+  if (productId > 0) {
+    multiPartRequest.fields['id'] = productId.toString();
+  }
+
+  for (int i = 0; i < serviceZones.length; i++) {
+    multiPartRequest.fields['service_zones[$i]'] = serviceZones[i].toString();
+  }
+
+  for (int i = 0; i < shopIds.length; i++) {
+    multiPartRequest.fields['shop_ids[$i]'] = shopIds[i].toString();
+  }
+
+  if (images.isNotEmpty) {
+    for (int i = 0; i < images.length; i++) {
+      multiPartRequest.files.add(await MultipartFile.fromPath(
+          'product_attachment_$i', images[i].path));
+    }
+    multiPartRequest.fields['attachment_count'] = images.length.toString();
+  }
+
+  multiPartRequest.headers.addAll(buildHeaderTokens());
+
+  log("Product MultiPart Request : ${jsonEncode(multiPartRequest.fields)} ${multiPartRequest.files.map((e) => e.field + ": " + e.filename.validate())}");
+
+  appStore.setLoading(true);
+
+  await sendMultiPartRequest(
+    multiPartRequest,
+    onSuccess: (temp) async {
+      appStore.setLoading(false);
+      toast(jsonDecode(temp)['message'], print: true);
+      finish(getContext, true);
+    },
+    onError: (error) {
+      toast(error.toString(), print: true);
+      appStore.setLoading(false);
+    },
+  ).catchError((e) {
+    appStore.setLoading(false);
+    toast(e.toString());
+  });
+}
+//endregion
+
+//region Product Order API
+Future<List<ProductOrderData>> getProviderProductOrderList({
+  int page = 1,
+  var perPage = PER_PAGE_ITEM,
+  required List<ProductOrderData> orders,
+  Function(bool)? lastPageCallback,
+  Function(String totalEarning, ProductOrderPaymentBreakdown paymentBreakdown)?
+      paymentBreakdownCallBack,
+  String deliveryStatus = '',
+  String paymentStatus = '',
+  String paymentType = '',
+  String dateFrom = '',
+  String dateTo = '',
+  String customerId = '',
+  String handymanId = '',
+  String shopId = '',
+  String search = '',
+}) async {
+  try {
+    String params = '?per_page=$perPage&page=$page';
+    if (deliveryStatus.validate().isNotEmpty &&
+        deliveryStatus != ProductOrderStatusKeys.all)
+      params += '&delivery_status=$deliveryStatus';
+    if (paymentStatus.validate().isNotEmpty)
+      params += '&payment_status=$paymentStatus';
+    if (paymentType.validate().isNotEmpty)
+      params += '&payment_type=$paymentType';
+    if (dateFrom.validate().isNotEmpty) params += '&date_from=$dateFrom';
+    if (dateTo.validate().isNotEmpty) params += '&date_to=$dateTo';
+    if (customerId.validate().isNotEmpty) params += '&customer_id=$customerId';
+    if (handymanId.validate().isNotEmpty) params += '&handyman_id=$handymanId';
+    if (shopId.validate().isNotEmpty) params += '&shop_id=$shopId';
+    if (search.validate().isNotEmpty)
+      params += '&search=${Uri.encodeComponent(search)}';
+
+    ProductOrderListResponse res = ProductOrderListResponse.fromJson(
+      await handleResponse(
+        await buildHttpResponse('provider-product-order-list$params',
+            method: HttpMethodType.GET),
+      ),
+    );
+
+    if (page == 1) orders.clear();
+    orders.addAll(res.data.validate());
+    lastPageCallback?.call(res.data.validate().length != perPage);
+    if (res.totalEarning.validate().isNotEmpty &&
+        res.paymentBreakdown != null) {
+      paymentBreakdownCallBack?.call(
+          res.totalEarning.validate(), res.paymentBreakdown!);
+    }
+    appStore.setLoading(false);
+    return orders;
+  } catch (e) {
+    appStore.setLoading(false);
+    throw e;
+  }
+}
+
+Future<ProductOrderDetailResponse> getProductOrderDetail(Map request) async {
+  return ProductOrderDetailResponse.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-order-detail',
+          request: request, method: HttpMethodType.POST),
+    ),
+  );
+}
+
+Future<BaseResponseModel> productOrderUpdate(Map request) async {
+  BaseResponseModel res = BaseResponseModel.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-order-update',
+          request: request, method: HttpMethodType.POST),
+    ),
+  );
+  LiveStream().emit(LIVESTREAM_UPDATE_PRODUCT_ORDERS);
+  appStore.setLoading(false);
+  return res;
+}
+
+Future<BaseResponseModel> assignProductOrder(Map request) async {
+  return BaseResponseModel.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-order-assigned',
+          request: request, method: HttpMethodType.POST),
+    ),
+  );
+}
+
+Future<BaseResponseModel> saveProductOrderProof({
+  required int orderId,
+  required String description,
+  required List<File> images,
+}) async {
+  MultipartRequest multiPartRequest =
+      await getMultiPartRequest('product-order-proof-save');
+
+  multiPartRequest.fields[CommonKeys.id] = orderId.toString();
+  multiPartRequest.fields['description'] = description;
+  multiPartRequest.fields['attachment_count'] = images.length.toString();
+
+  for (int i = 0; i < images.length; i++) {
+    multiPartRequest.files.add(
+        await MultipartFile.fromPath('proof_attachment_$i', images[i].path));
+  }
+
+  multiPartRequest.headers.addAll(buildHeaderTokens());
+
+  BaseResponseModel? response;
+  await sendMultiPartRequest(
+    multiPartRequest,
+    onSuccess: (temp) async {
+      response = BaseResponseModel.fromJson(jsonDecode(temp));
+      toast(response!.message.validate());
+    },
+    onError: (error) {
+      toast(error.toString(), print: true);
+      appStore.setLoading(false);
+    },
+  );
+
+  return response ?? BaseResponseModel();
+}
+
+Future<UpdateLocationResponse> updateProductOrderLocation(
+    int orderId, String latitude, String longitude) async {
+  return UpdateLocationResponse.fromJson(
+    await handleResponse(
+      await buildHttpResponse(
+        'product-order-update-location',
+        request: {
+          CommonKeys.id: orderId,
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+        method: HttpMethodType.POST,
+      ).timeout(Duration(seconds: GET_LOCATION_API_TIMEOUT_SECOND)),
+    ),
+  );
+}
+
+Future<UpdateLocationResponse> getProductOrderLocation(int orderId) async {
+  return UpdateLocationResponse.fromJson(
+    await handleResponse(
+      await buildHttpResponse(
+        'product-order-location?id=$orderId',
+        method: HttpMethodType.GET,
+      ).timeout(Duration(seconds: GET_LOCATION_API_TIMEOUT_SECOND)),
+    ),
+  );
+}
+//endregion
+
 //region Post Job Request
 Future<List<PostJobData>> getPostJobList(
   int page, {
@@ -1867,15 +2205,19 @@ Future<PostJobDetailResponse> getPostJobDetail(Map request) async {
     );
     appStore.setLoading(false);
 
-    if (!cachedPostJobList.any((element) => element?.$1 == request[PostJob.postRequestId])) {
+    if (!cachedPostJobList
+        .any((element) => element?.$1 == request[PostJob.postRequestId])) {
       cachedPostJobList.add(
         (request[PostJob.postRequestId].toString().toInt().validate(), res),
       );
     } else {
       int index = cachedPostJobList.indexWhere(
-        (element) => element?.$1 == request[PostJob.postRequestId].toString().toInt().validate(),
+        (element) =>
+            element?.$1 ==
+            request[PostJob.postRequestId].toString().toInt().validate(),
       );
-      cachedPostJobList[index] = (request[PostJob.postRequestId].toString().toInt().validate(), res);
+      cachedPostJobList[index] =
+          (request[PostJob.postRequestId].toString().toInt().validate(), res);
     }
 
     log(cachedPostJobList.map((e) => e));
@@ -1951,7 +2293,8 @@ Future<List<ServiceAddon>> getAddonsServiceList({
 
     addonServiceData.addAll(res.addonsServiceList.validate());
 
-    lastPageCallback?.call(res.addonsServiceList.validate().length != PER_PAGE_ITEM);
+    lastPageCallback
+        ?.call(res.addonsServiceList.validate().length != PER_PAGE_ITEM);
 
     appStore.setLoading(false);
 
@@ -1967,7 +2310,8 @@ Future<void> addAddonMultiPart({
   required Map<String, dynamic> value,
   File? imageFile,
 }) async {
-  MultipartRequest multiPartRequest = await getMultiPartRequest('service-addon-save');
+  MultipartRequest multiPartRequest =
+      await getMultiPartRequest('service-addon-save');
 
   multiPartRequest.fields.addAll(await getMultipartFields(val: value));
 
@@ -2068,7 +2412,8 @@ Future<void> addPackageMultiPart({
         name: PackageKey.packageAttachment,
       ),
     );
-    multiPartRequest.fields[AddServiceKey.attachmentCount] = imageFile.validate().length.toString();
+    multiPartRequest.fields[AddServiceKey.attachmentCount] =
+        imageFile.validate().length.toString();
   }
 
   log("${multiPartRequest.fields}");
@@ -2262,8 +2607,10 @@ Future sadadCreateInvoice({
 
 //region Google Maps
 Future<List<GooglePlacesModel>> getSuggestion(String input) async {
-  String baseURL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-  String request = '$baseURL?input=$input&key=${appConfigurationStore.googleMapKey}&sessiontoken=${appStore.token}';
+  String baseURL =
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+  String request =
+      '$baseURL?input=$input&key=${appConfigurationStore.googleMapKey}&sessiontoken=${appStore.token}';
 
   var response = await buildHttpResponse(request);
 
@@ -2354,11 +2701,16 @@ Future<List<ShopModel>> getShopList(
   try {
     String searchParam = search.isNotEmpty ? '&search=$search' : '';
     if (serviceIds.isNotEmpty) searchParam += '&service_id=$serviceIds';
-    if (appStore.userId.validate() > 0 && appStore.userType == USER_TYPE_PROVIDER) searchParam += '&provider_id=${appStore.userId}';
-    if (appStore.providerId.validate() > 0 && appStore.userType == USER_TYPE_HANDYMAN) searchParam += '&provider_id=${appStore.providerId}';
+    if (appStore.userId.validate() > 0 &&
+        appStore.userType == USER_TYPE_PROVIDER)
+      searchParam += '&provider_id=${appStore.userId}';
+    if (appStore.providerId.validate() > 0 &&
+        appStore.userType == USER_TYPE_HANDYMAN)
+      searchParam += '&provider_id=${appStore.providerId}';
     String apiUrl = 'shop-list?per_page=$perPage&page=$page$searchParam';
 
-    ShopListResponse res = await ShopListResponse.fromJson(await handleResponse(await buildHttpResponse(apiUrl, method: HttpMethodType.GET)));
+    ShopListResponse res = await ShopListResponse.fromJson(await handleResponse(
+        await buildHttpResponse(apiUrl, method: HttpMethodType.GET)));
 
     if (page == 1) shopList.clear();
     shopList.addAll(res.shopList.validate());
@@ -2373,23 +2725,28 @@ Future<List<ShopModel>> getShopList(
 }
 
 Future<ShopDetailResponse> getShopDetail(int shopId) async {
-  final res = await handleResponse(await buildHttpResponse('shop-detail/$shopId', method: HttpMethodType.GET));
+  final res = await handleResponse(await buildHttpResponse(
+      'shop-detail/$shopId',
+      method: HttpMethodType.GET));
   return ShopDetailResponse.fromJson(res);
 }
 
-Future<void> editShop(Map<String, dynamic> data, List<File> images, {int? shopId}) async {
+Future<void> editShop(Map<String, dynamic> data, List<File> images,
+    {int? shopId}) async {
   if (shopId == null) {
     throw Exception('Shop ID is required for editing');
   }
 
-  MultipartRequest multiPartRequest = await getMultiPartRequest('shop-update/$shopId');
+  MultipartRequest multiPartRequest =
+      await getMultiPartRequest('shop-update/$shopId');
 
   multiPartRequest.fields.addAll(await getMultipartFields(val: data));
 
   if (images.isNotEmpty) {
     for (int i = 0; i < images.length; i++) {
       String fieldName = 'shop_attachment_$i';
-      multiPartRequest.files.add(await MultipartFile.fromPath(fieldName, images[i].path));
+      multiPartRequest.files
+          .add(await MultipartFile.fromPath(fieldName, images[i].path));
     }
     multiPartRequest.fields['attachment_count'] = images.length.toString();
   } else {
@@ -2407,7 +2764,9 @@ Future<void> editShop(Map<String, dynamic> data, List<File> images, {int? shopId
 }
 
 Future<BaseResponseModel> deleteShop(int shopId) async {
-  return await BaseResponseModel.fromJson(await handleResponse(await buildHttpResponse('shop-delete/$shopId', method: HttpMethodType.POST)));
+  return await BaseResponseModel.fromJson(await handleResponse(
+      await buildHttpResponse('shop-delete/$shopId',
+          method: HttpMethodType.POST)));
 }
 
 Future<void> addEditShopMultiPart({
@@ -2421,7 +2780,8 @@ Future<void> addEditShopMultiPart({
   if (images.isNotEmpty) {
     for (int i = 0; i < images.length; i++) {
       String fieldName = 'shop_attachment_$i';
-      multiPartRequest.files.add(await MultipartFile.fromPath(fieldName, images[i].path));
+      multiPartRequest.files
+          .add(await MultipartFile.fromPath(fieldName, images[i].path));
     }
     multiPartRequest.fields['attachment_count'] = images.length.toString();
   }
@@ -2454,12 +2814,15 @@ Future<List<ProviderDocuments>> getShopDoc({
 
   documents.addAll(response.providerDocuments.validate());
 
-  lastPageCallback?.call(response.providerDocuments.validate().length != PER_PAGE_ITEM);
+  lastPageCallback
+      ?.call(response.providerDocuments.validate().length != PER_PAGE_ITEM);
   return documents;
 }
 
 Future<CommonResponseModel> deleteShopDoc(int? id) async {
-  return CommonResponseModel.fromJson(await handleResponse(await buildHttpResponse('shop-document-delete/$id', method: HttpMethodType.POST)));
+  return CommonResponseModel.fromJson(await handleResponse(
+      await buildHttpResponse('shop-document-delete/$id',
+          method: HttpMethodType.POST)));
 }
 
 //endregion

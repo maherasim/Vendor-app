@@ -14,8 +14,18 @@ class CategorySubCatDropDown extends StatefulWidget {
   final bool? isSubCategoryValidate;
   final Color? fillColor;
   final String? languageCode;
+  final String? serviceType;
 
-  CategorySubCatDropDown({ this.categoryId, this.subCategoryId, required this.onSubCategorySelect, required this.onCategorySelect, this.isSubCategoryValidate, this.isCategoryValidate, this.fillColor, this.languageCode});
+  CategorySubCatDropDown(
+      {this.categoryId,
+      this.subCategoryId,
+      required this.onSubCategorySelect,
+      required this.onCategorySelect,
+      this.isSubCategoryValidate,
+      this.isCategoryValidate,
+      this.fillColor,
+      this.languageCode,
+      this.serviceType});
 
   @override
   State<CategorySubCatDropDown> createState() => _CategorySubCatDropDownState();
@@ -37,6 +47,7 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
   void init() async {
     getCategory();
   }
+
   @override
   void didUpdateWidget(covariant CategorySubCatDropDown oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -50,11 +61,16 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
   }
 
   Future<void> getSubCategory({required int categoryId}) async {
-    await getSubCategoryList(catId: categoryId.toInt(), languageCode: widget.languageCode.validate()).then((value) {
+    await getSubCategoryList(
+            catId: categoryId.toInt(),
+            languageCode: widget.languageCode.validate(),
+            serviceType: widget.serviceType.validate())
+        .then((value) {
       subCategoryList = value.data.validate();
 
       if (widget.subCategoryId != null) {
-        selectedSubCategory = value.data!.firstWhere((element) => element.id == widget.subCategoryId);
+        selectedSubCategory = value.data!
+            .firstWhere((element) => element.id == widget.subCategoryId);
         widget.onSubCategorySelect.call(selectedSubCategory?.id.validate());
       }
 
@@ -67,13 +83,18 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
   Future<void> getCategory() async {
     appStore.setLoading(true);
 
-    await getCategoryList(perPage: 'all', languageCode: widget.languageCode.validate()).then((value) {
+    await getCategoryList(
+            perPage: 'all',
+            languageCode: widget.languageCode.validate(),
+            serviceType: widget.serviceType.validate())
+        .then((value) {
       categoryList = value.data!;
 
       ///
       if (widget.categoryId != null) {
         ///
-        selectedCategory = value.data!.firstWhere((element) => element.id == widget.categoryId);
+        selectedCategory = value.data!
+            .firstWhere((element) => element.id == widget.categoryId);
         widget.onCategorySelect.call(selectedCategory?.id.validate());
 
         ///
@@ -108,7 +129,9 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
       child: Column(
         children: [
           DropdownButtonFormField<CategoryData>(
-            decoration: inputDecoration(context, fillColor: widget.fillColor ?? context.scaffoldBackgroundColor, hint: languages.hintSelectCategory),
+            decoration: inputDecoration(context,
+                fillColor: widget.fillColor ?? context.scaffoldBackgroundColor,
+                hint: languages.hintSelectCategory),
             initialValue: selectedCategory,
             dropdownColor: context.scaffoldBackgroundColor,
             items: categoryList.map((data) {
@@ -139,7 +162,9 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
           ),
           16.height,
           DropdownButtonFormField<CategoryData>(
-            decoration: inputDecoration(context, fillColor: context.scaffoldBackgroundColor, hint: getStringValue()),
+            decoration: inputDecoration(context,
+                fillColor: context.scaffoldBackgroundColor,
+                hint: getStringValue()),
             initialValue: selectedSubCategory,
             dropdownColor: context.scaffoldBackgroundColor,
             validator: widget.isSubCategoryValidate.validate(value: false)
@@ -157,7 +182,8 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
             }).toList(),
             onChanged: (CategoryData? value) async {
               selectedSubCategory = value!;
-              widget.onSubCategorySelect.call(selectedSubCategory!.id.validate());
+              widget.onSubCategorySelect
+                  .call(selectedSubCategory!.id.validate());
               setState(() {});
             },
           ),

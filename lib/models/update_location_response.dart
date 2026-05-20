@@ -38,9 +38,13 @@ class Data {
 
   factory Data.fromJson(Map<String, dynamic> json) {
     return Data(
-      bookingId: json['booking_id'] is String ? json['booking_id'] : "",
-      latitude: json['latitude'] is num ? json['latitude'] : 0.0,
-      longitude: json['longitude'] is num ? json['longitude'] : 0.0,
+      bookingId: (json['booking_id'] ?? json['order_id'] ?? '').toString(),
+      latitude: json['latitude'] is num
+          ? json['latitude']
+          : num.tryParse(json['latitude']?.toString() ?? '') ?? 0.0,
+      longitude: json['longitude'] is num
+          ? json['longitude']
+          : num.tryParse(json['longitude']?.toString() ?? '') ?? 0.0,
       datetime: json['datetime'] is String ? json['datetime'] : "",
     );
   }

@@ -7,6 +7,7 @@ import 'package:handyman_provider_flutter/fragments/notification_fragment.dart';
 import 'package:handyman_provider_flutter/main.dart';
 import 'package:handyman_provider_flutter/provider/fragments/provider_home_fragment.dart';
 import 'package:handyman_provider_flutter/provider/fragments/provider_profile_fragment.dart';
+import 'package:handyman_provider_flutter/provider/product_order/product_order_fragment.dart';
 import 'package:handyman_provider_flutter/screens/chat/user_chat_list_screen.dart';
 import 'package:handyman_provider_flutter/utils/app_configuration.dart';
 import 'package:handyman_provider_flutter/utils/colors.dart';
@@ -35,7 +36,8 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   DateTime? currentBackPressTime;
 
-  bool get isCurrentFragmentIsBooking => getFragments()[currentIndex].runtimeType == BookingFragment().runtimeType;
+  bool get isCurrentFragmentIsBooking =>
+      getFragments()[currentIndex].runtimeType == BookingFragment().runtimeType;
 
   @override
   void initState() {
@@ -107,6 +109,7 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return [
       ProviderHomeFragment(),
       BookingFragment(),
+      const ProductOrderFragment(),
       if (appConfigurationStore.isEnableChat) ChatListScreen(),
       ProviderProfileFragment(),
     ];
@@ -116,6 +119,7 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return [
       languages.providerHome,
       languages.lblBooking,
+      'Products',
       if (appConfigurationStore.isEnableChat) languages.lblChat,
       languages.lblProfile,
     ];
@@ -189,7 +193,9 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                           IconButton(
                             icon: ic_filter.iconImage(color: white, size: 20),
                             onPressed: () async {
-                              BookingFilterScreen().launch(context).then((value) {
+                              BookingFilterScreen()
+                                  .launch(context)
+                                  .then((value) {
                                 if (value != null) {
                                   LiveStream().emit(LIVESTREAM_UPDATE_BOOKINGS);
                                   setState(() {});
@@ -233,7 +239,8 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 data: NavigationBarThemeData(
                   backgroundColor: context.primaryColor.withAlpha(5),
                   indicatorColor: context.primaryColor.withAlpha(25),
-                  labelTextStyle: WidgetStateProperty.all(primaryTextStyle(size: 12)),
+                  labelTextStyle:
+                      WidgetStateProperty.all(primaryTextStyle(size: 12)),
                   surfaceTintColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                 ),
@@ -246,9 +253,16 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                       label: languages.home,
                     ),
                     NavigationDestination(
-                      icon: total_booking.iconImage(color: appTextSecondaryColor),
-                      selectedIcon: total_booking.iconImage(color: primaryColor),
+                      icon:
+                          total_booking.iconImage(color: appTextSecondaryColor),
+                      selectedIcon:
+                          total_booking.iconImage(color: primaryColor),
                       label: languages.lblBooking,
+                    ),
+                    NavigationDestination(
+                      icon: ic_packages.iconImage(color: appTextSecondaryColor),
+                      selectedIcon: ic_packages.iconImage(color: primaryColor),
+                      label: 'Products',
                     ),
                     if (appConfigurationStore.isEnableChat)
                       NavigationDestination(
@@ -264,7 +278,8 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                     Observer(
                       builder: (context) {
                         return NavigationDestination(
-                          icon: (appStore.isLoggedIn && appStore.userProfileImage.isNotEmpty)
+                          icon: (appStore.isLoggedIn &&
+                                  appStore.userProfileImage.isNotEmpty)
                               ? IgnorePointer(
                                   ignoring: true,
                                   child: ImageBorder(
@@ -273,7 +288,8 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                                   ),
                                 )
                               : profile.iconImage(color: appTextSecondaryColor),
-                          selectedIcon: (appStore.isLoggedIn && appStore.userProfileImage.isNotEmpty)
+                          selectedIcon: (appStore.isLoggedIn &&
+                                  appStore.userProfileImage.isNotEmpty)
                               ? IgnorePointer(
                                   ignoring: true,
                                   child: ImageBorder(

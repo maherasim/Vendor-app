@@ -8,6 +8,7 @@ import 'package:handyman_provider_flutter/fragments/notification_fragment.dart';
 import 'package:handyman_provider_flutter/handyman/screen/fragments/handyman_fragment.dart';
 import 'package:handyman_provider_flutter/handyman/screen/fragments/handyman_profile_fragment.dart';
 import 'package:handyman_provider_flutter/main.dart';
+import 'package:handyman_provider_flutter/provider/product_order/product_order_fragment.dart';
 import 'package:handyman_provider_flutter/screens/chat/user_chat_list_screen.dart';
 import 'package:handyman_provider_flutter/utils/colors.dart';
 import 'package:handyman_provider_flutter/utils/common.dart';
@@ -28,17 +29,20 @@ class HandymanDashboardScreen extends StatefulWidget {
   HandymanDashboardScreen({this.index});
 
   @override
-  _HandymanDashboardScreenState createState() => _HandymanDashboardScreenState();
+  _HandymanDashboardScreenState createState() =>
+      _HandymanDashboardScreenState();
 }
 
 class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
   int currentIndex = 0;
 
-  bool get isCurrentFragmentIsBooking => fragmentList[currentIndex].runtimeType == BookingFragment().runtimeType;
+  bool get isCurrentFragmentIsBooking =>
+      fragmentList[currentIndex].runtimeType == BookingFragment().runtimeType;
 
   List<Widget> fragmentList = [
     const HandymanHomeFragment(),
     BookingFragment(),
+    const ProductOrderFragment(),
     if (appConfigurationStore.isEnableChat) ChatListScreen(),
     HandymanProfileFragment(),
   ];
@@ -91,7 +95,8 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
 
       100.milliseconds.delay.then((value) {
         if (data.containsKey('booking_type')) {
-          LiveStream().emit(LIVESTREAM_UPDATE_BOOKING_STATUS_WISE, data['booking_type']);
+          LiveStream().emit(
+              LIVESTREAM_UPDATE_BOOKING_STATUS_WISE, data['booking_type']);
         } else if (currentIndex == 1) {
           LiveStream().emit(LIVESTREAM_UPDATE_BOOKING_STATUS_WISE, '');
         }
@@ -140,6 +145,7 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
           [
             languages.handymanHome,
             languages.lblBooking,
+            'Products',
             if (appConfigurationStore.isEnableChat) languages.lblChat,
             languages.lblProfile,
           ][currentIndex],
@@ -174,9 +180,12 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
                         if (appStore.notificationCount.validate() > 0) {
                           return Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: boxDecorationDefault(color: Colors.red, shape: BoxShape.circle),
+                            decoration: boxDecorationDefault(
+                                color: Colors.red, shape: BoxShape.circle),
                             child: FittedBox(
-                              child: Text(appStore.notificationCount.toString(), style: primaryTextStyle(size: 12, color: Colors.white)),
+                              child: Text(appStore.notificationCount.toString(),
+                                  style: primaryTextStyle(
+                                      size: 12, color: Colors.white)),
                             ),
                           );
                         }
@@ -211,7 +220,8 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
             data: NavigationBarThemeData(
               backgroundColor: context.primaryColor.withValues(alpha: 0.02),
               indicatorColor: context.primaryColor.withValues(alpha: 0.1),
-              labelTextStyle: WidgetStateProperty.all(primaryTextStyle(size: 12)),
+              labelTextStyle:
+                  WidgetStateProperty.all(primaryTextStyle(size: 12)),
               surfaceTintColor: Colors.transparent,
               shadowColor: Colors.transparent,
             ),
@@ -220,29 +230,46 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
               destinations: [
                 NavigationDestination(
                   icon: ic_home.iconImage(color: appTextSecondaryColor),
-                  selectedIcon: ic_fill_home.iconImage(color: context.primaryColor),
+                  selectedIcon:
+                      ic_fill_home.iconImage(color: context.primaryColor),
                   label: languages.home,
                 ),
                 NavigationDestination(
                   icon: total_booking.iconImage(color: appTextSecondaryColor),
-                  selectedIcon: fill_ticket.iconImage(color: context.primaryColor),
+                  selectedIcon:
+                      fill_ticket.iconImage(color: context.primaryColor),
                   label: languages.lblBooking,
+                ),
+                NavigationDestination(
+                  icon: ic_packages.iconImage(color: appTextSecondaryColor),
+                  selectedIcon:
+                      ic_packages.iconImage(color: context.primaryColor),
+                  label: 'Products',
                 ),
                 if (appConfigurationStore.isEnableChat)
                   NavigationDestination(
-                    icon: Image.asset(chat, height: 20, width: 20, color: appTextSecondaryColor),
-                    selectedIcon: Image.asset(ic_fill_textMsg, height: 26, width: 26),
+                    icon: Image.asset(chat,
+                        height: 20, width: 20, color: appTextSecondaryColor),
+                    selectedIcon:
+                        Image.asset(ic_fill_textMsg, height: 26, width: 26),
                     label: languages.lblChat,
                   ),
                 Observer(
                   builder: (context) {
                     return NavigationDestination(
-                      icon: (appStore.isLoggedIn && appStore.userProfileImage.isNotEmpty)
-                          ? IgnorePointer(child: ImageBorder(src: appStore.userProfileImage, height: 26))
+                      icon: (appStore.isLoggedIn &&
+                              appStore.userProfileImage.isNotEmpty)
+                          ? IgnorePointer(
+                              child: ImageBorder(
+                                  src: appStore.userProfileImage, height: 26))
                           : profile.iconImage(color: appTextSecondaryColor),
-                      selectedIcon: (appStore.isLoggedIn && appStore.userProfileImage.isNotEmpty)
-                          ? IgnorePointer(child: ImageBorder(src: appStore.userProfileImage, height: 26))
-                          : ic_fill_profile.iconImage(color: context.primaryColor),
+                      selectedIcon: (appStore.isLoggedIn &&
+                              appStore.userProfileImage.isNotEmpty)
+                          ? IgnorePointer(
+                              child: ImageBorder(
+                                  src: appStore.userProfileImage, height: 26))
+                          : ic_fill_profile.iconImage(
+                              color: context.primaryColor),
                       label: languages.lblProfile,
                     );
                   },
