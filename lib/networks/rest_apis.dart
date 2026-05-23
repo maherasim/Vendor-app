@@ -43,6 +43,7 @@ import 'package:handyman_provider_flutter/models/subscription_history_model.dart
 import 'package:handyman_provider_flutter/models/tax_list_response.dart';
 import 'package:handyman_provider_flutter/models/total_earning_response.dart';
 import 'package:handyman_provider_flutter/models/update_location_response.dart';
+import 'package:handyman_provider_flutter/models/uploaded_video_model.dart';
 import 'package:handyman_provider_flutter/models/user_data.dart';
 import 'package:handyman_provider_flutter/models/user_info_response.dart';
 import 'package:handyman_provider_flutter/models/user_list_response.dart';
@@ -479,6 +480,24 @@ Future<CategoryResponse> getCategoryList({
   String? languageCode,
   String serviceType = '',
 }) async {
+  if (serviceType.validate() == 'ecommerce') {
+    final languageParam = languageCode.validate().isNotEmpty
+        ? '&language_id=${languageCode.validate()}'
+        : '';
+
+    return CategoryResponse.fromJson(
+      await handleResponse(
+        await buildHttpResponse(
+          'product-category-list?per_page=$perPage$languageParam',
+          method: HttpMethodType.GET,
+          header: languageCode != null
+              ? buildHeaderTokensForLanguage(languageCode)
+              : null,
+        ),
+      ),
+    );
+  }
+
   String serviceTypeParam = serviceType.validate().isNotEmpty
       ? '&type=$serviceType&service_type=$serviceType'
       : '';
@@ -502,6 +521,28 @@ Future<CategoryResponse> getSubCategoryList({
   String? languageCode,
   String serviceType = '',
 }) async {
+  if (serviceType.validate() == 'ecommerce') {
+    String categoryId = catId != -1 ? 'category_id=$catId' : '';
+    String perPage = catId != -1
+        ? '&per_page=$PER_PAGE_ITEM_ALL'
+        : 'per_page=$PER_PAGE_ITEM_ALL';
+    String languageParam = languageCode.validate().isNotEmpty
+        ? '&language_id=${languageCode.validate()}'
+        : '';
+
+    return CategoryResponse.fromJson(
+      await handleResponse(
+        await buildHttpResponse(
+          'product-subcategory-list?$categoryId$perPage$languageParam',
+          method: HttpMethodType.GET,
+          header: languageCode != null
+              ? buildHeaderTokensForLanguage(languageCode)
+              : null,
+        ),
+      ),
+    );
+  }
+
   String categoryId = catId != -1 ? "category_id=$catId" : "";
   String perPage = catId != -1
       ? '&per_page=$PER_PAGE_ITEM_ALL'
@@ -1942,6 +1983,15 @@ Future<ProductDetailResponse> getProductDetail(Map request) async {
   );
 }
 
+Future<ProductFormConfigResponse> getProductFormConfig() async {
+  return ProductFormConfigResponse.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-form-config',
+          method: HttpMethodType.GET),
+    ),
+  );
+}
+
 Future<BaseResponseModel> deleteProduct(int id) async {
   return BaseResponseModel.fromJson(
     await handleResponse(
@@ -1956,6 +2006,9 @@ Future<void> addEditProductMultiPart({
   required Map<String, dynamic> data,
   required List<int> serviceZones,
   List<int> shopIds = const [],
+  List<String> variantLabels = const [],
+  List<String> variantPrices = const [],
+  List<String> variantStocks = const [],
   List<File> images = const [],
 }) async {
   MultipartRequest multiPartRequest = await getMultiPartRequest(
@@ -1973,6 +2026,18 @@ Future<void> addEditProductMultiPart({
 
   for (int i = 0; i < shopIds.length; i++) {
     multiPartRequest.fields['shop_ids[$i]'] = shopIds[i].toString();
+  }
+
+  for (int i = 0; i < variantLabels.length; i++) {
+    multiPartRequest.fields['variant_labels[$i]'] = variantLabels[i];
+  }
+
+  for (int i = 0; i < variantPrices.length; i++) {
+    multiPartRequest.fields['variant_price[$i]'] = variantPrices[i];
+  }
+
+  for (int i = 0; i < variantStocks.length; i++) {
+    multiPartRequest.fields['variant_stock[$i]'] = variantStocks[i];
   }
 
   if (images.isNotEmpty) {
@@ -2645,6 +2710,14 @@ Future<BaseResponseModel> withdrawRequest(Map request) async {
         request: request,
         method: HttpMethodType.POST,
       ),
+    ),
+  );
+}
+
+Future<UploadedVideoResponse> getUploadedVideo() async {
+  return UploadedVideoResponse.fromJson(
+    await handleResponse(
+      await buildHttpResponse('uploaded-video', method: HttpMethodType.GET),
     ),
   );
 }

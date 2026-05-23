@@ -69,9 +69,15 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
       subCategoryList = value.data.validate();
 
       if (widget.subCategoryId != null) {
-        selectedSubCategory = value.data!
-            .firstWhere((element) => element.id == widget.subCategoryId);
-        widget.onSubCategorySelect.call(selectedSubCategory?.id.validate());
+        selectedSubCategory = subCategoryList.firstWhere(
+          (element) => element.id == widget.subCategoryId,
+          orElse: () => CategoryData(),
+        );
+        if (selectedSubCategory?.id != null) {
+          widget.onSubCategorySelect.call(selectedSubCategory?.id.validate());
+        } else {
+          selectedSubCategory = null;
+        }
       }
 
       setState(() {});
@@ -88,13 +94,21 @@ class _CategorySubCatDropDownState extends State<CategorySubCatDropDown> {
             languageCode: widget.languageCode.validate(),
             serviceType: widget.serviceType.validate())
         .then((value) {
-      categoryList = value.data!;
+      categoryList = value.data.validate();
 
       ///
       if (widget.categoryId != null) {
         ///
-        selectedCategory = value.data!
-            .firstWhere((element) => element.id == widget.categoryId);
+        selectedCategory = categoryList.firstWhere(
+          (element) => element.id == widget.categoryId,
+          orElse: () => CategoryData(),
+        );
+        if (selectedCategory?.id == null) {
+          selectedCategory = null;
+          setState(() {});
+          return;
+        }
+
         widget.onCategorySelect.call(selectedCategory?.id.validate());
 
         ///

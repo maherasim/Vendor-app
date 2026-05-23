@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:handyman_provider_flutter/components/vendor_guide_video_dialog.dart';
 import 'package:handyman_provider_flutter/fragments/booking_fragment.dart';
 import 'package:handyman_provider_flutter/fragments/notification_fragment.dart';
 import 'package:handyman_provider_flutter/main.dart';
@@ -125,6 +126,14 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     ];
   }
 
+  Future<void> openVendorGuideVideo() async {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => const VendorGuideVideoDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Observer(
@@ -146,6 +155,12 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               textColor: Colors.white,
               showBack: false,
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.play_circle_outline,
+                      color: Colors.white),
+                  tooltip: 'Vendor guide video',
+                  onPressed: openVendorGuideVideo,
+                ),
                 IconButton(
                   icon: Stack(
                     clipBehavior: Clip.none,

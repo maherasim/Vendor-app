@@ -66,11 +66,13 @@ class _AssignDeliveryBoyScreenState extends State<AssignDeliveryBoyScreen> {
           CommonKeys.handymanId: [userId],
         }).then((value) {
           appStore.setLoading(false);
+          if (!mounted) return;
           widget.onUpdate?.call();
           finish(context);
           toast(value.message.validate());
         }).catchError((e) {
           appStore.setLoading(false);
+          if (!mounted) return;
           toast(e.toString());
         });
       },
@@ -134,6 +136,11 @@ class _AssignDeliveryBoyScreenState extends State<AssignDeliveryBoyScreen> {
   }
 
   @override
+  void setState(fn) {
+    if (mounted) super.setState(fn);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
@@ -159,6 +166,7 @@ class _AssignDeliveryBoyScreenState extends State<AssignDeliveryBoyScreen> {
                       HandymanAddUpdateScreen(
                         userType: USER_TYPE_HANDYMAN,
                         onUpdate: () {
+                          if (!mounted) return;
                           page = 1;
                           init();
                           setState(() {});
@@ -216,8 +224,10 @@ class _AssignDeliveryBoyScreenState extends State<AssignDeliveryBoyScreen> {
               child: Row(
                 children: [
                   AppButton(
-                    onTap: () => assignTo(appStore.userId.validate(),
-                        'Assign this order to yourself?'),
+                    onTap: () {
+                      assignTo(appStore.userId.validate(),
+                          'Assign this order to yourself?');
+                    },
                     width: context.width(),
                     shapeBorder: RoundedRectangleBorder(
                         borderRadius: radius(),
@@ -230,8 +240,10 @@ class _AssignDeliveryBoyScreenState extends State<AssignDeliveryBoyScreen> {
                   if (selectedDeliveryBoy != null) 16.width,
                   if (selectedDeliveryBoy != null)
                     AppButton(
-                      onTap: () => assignTo(selectedDeliveryBoy!.id.validate(),
-                          'Assign this order to ${selectedDeliveryBoy!.displayName.validate()}?'),
+                      onTap: () {
+                        assignTo(selectedDeliveryBoy!.id.validate(),
+                            'Assign this order to ${selectedDeliveryBoy!.displayName.validate()}?');
+                      },
                       color: primaryColor,
                       width: context.width(),
                       text: languages.lblAssign,

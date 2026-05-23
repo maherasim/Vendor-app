@@ -44,7 +44,9 @@ class ProviderSubscriptionModel {
     return ProviderSubscriptionModel(
       amount: json['amount'],
       endAt: json['end_at'],
-      planLimitation: json['plan_limitation'] != null ? PlanLimitation.fromJson(json['plan_limitation']) : null,
+      planLimitation: json['plan_limitation'] != null
+          ? PlanLimitation.fromJson(json['plan_limitation'])
+          : null,
       id: json['id'],
       identifier: json['identifier'],
       planId: json['plan_id'],
@@ -56,9 +58,16 @@ class ProviderSubscriptionModel {
       description: json['description'],
       duration: json['duration'],
       planType: json['plan_type'],
-      appStoreIdentifier: json['appstore_identifier'] is String ? json['appstore_identifier'] : "",
-      playStoreIdentifier: json['playstore_identifier'] is String ? json['playstore_identifier'] : "",
-      activePlanRevenueCatIdentifier: json['active_in_app_purchase_identifier'] is String ? json['active_in_app_purchase_identifier'] : "",
+      appStoreIdentifier: json['appstore_identifier'] is String
+          ? json['appstore_identifier']
+          : "",
+      playStoreIdentifier: json['playstore_identifier'] is String
+          ? json['playstore_identifier']
+          : "",
+      activePlanRevenueCatIdentifier:
+          json['active_in_app_purchase_identifier'] is String
+              ? json['active_in_app_purchase_identifier']
+              : "",
     );
   }
 
@@ -87,24 +96,49 @@ class ProviderSubscriptionModel {
 }
 
 class PlanLimitation {
+  LimitData? ecommerce;
   LimitData? featuredService;
+  LimitData? featuredEcommerce;
   LimitData? handyman;
   LimitData? service;
 
-  PlanLimitation({this.featuredService, this.handyman, this.service});
+  PlanLimitation({
+    this.ecommerce,
+    this.featuredService,
+    this.featuredEcommerce,
+    this.handyman,
+    this.service,
+  });
 
   factory PlanLimitation.fromJson(Map<String, dynamic> json) {
     return PlanLimitation(
-      featuredService: json['featured_service'] != null ? LimitData.fromJson(json['featured_service']) : null,
-      handyman: json['handyman'] != null ? LimitData.fromJson(json['handyman']) : null,
-      service: json['service'] != null ? LimitData.fromJson(json['service']) : null,
+      ecommerce: json['ecommerce'] != null
+          ? LimitData.fromJson(json['ecommerce'])
+          : null,
+      featuredService: json['featured_service'] != null
+          ? LimitData.fromJson(json['featured_service'])
+          : null,
+      featuredEcommerce: json['featured_ecommerce'] != null
+          ? LimitData.fromJson(json['featured_ecommerce'])
+          : null,
+      handyman: json['handyman'] != null
+          ? LimitData.fromJson(json['handyman'])
+          : null,
+      service:
+          json['service'] != null ? LimitData.fromJson(json['service']) : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    if (ecommerce != null) {
+      data['ecommerce'] = ecommerce!.toJson();
+    }
     if (featuredService != null) {
       data['featured_service'] = featuredService!.toJson();
+    }
+    if (featuredEcommerce != null) {
+      data['featured_ecommerce'] = featuredEcommerce!.toJson();
     }
     if (handyman != null) {
       data['handyman'] = handyman!.toJson();

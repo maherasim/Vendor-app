@@ -65,9 +65,18 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
     await inAppPurchaseService.getStoreSubscriptionPlanList().then((value) {
       revenueCatSubscriptionOfferings = value;
 
-      if (revenueCatSubscriptionOfferings != null && revenueCatSubscriptionOfferings!.current != null && revenueCatSubscriptionOfferings!.current!.availablePackages.isNotEmpty) {
-        storeProductList = revenueCatSubscriptionOfferings!.current!.availablePackages.map((e) => e.storeProduct).toList();
-        Set<String> revenueCatIdentifiers = revenueCatSubscriptionOfferings!.current!.availablePackages.map((package) => package.storeProduct.identifier).toSet();
+      if (revenueCatSubscriptionOfferings != null &&
+          revenueCatSubscriptionOfferings!.current != null &&
+          revenueCatSubscriptionOfferings!
+              .current!.availablePackages.isNotEmpty) {
+        storeProductList = revenueCatSubscriptionOfferings!
+            .current!.availablePackages
+            .map((e) => e.storeProduct)
+            .toList();
+        Set<String> revenueCatIdentifiers = revenueCatSubscriptionOfferings!
+            .current!.availablePackages
+            .map((package) => package.storeProduct.identifier)
+            .toSet();
 
         // Filter backend plans to match RevenueCat identifiers
 
@@ -87,12 +96,21 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
   Package? getSelectedPlanFromRevenueCat(
     ProviderSubscriptionModel selectedPlan,
   ) {
-    if (revenueCatSubscriptionOfferings != null && revenueCatSubscriptionOfferings!.current != null && revenueCatSubscriptionOfferings!.current!.availablePackages.isNotEmpty) {
-      int index = revenueCatSubscriptionOfferings!.current!.availablePackages.indexWhere(
-        (element) => element.storeProduct.identifier == (isIOS ? selectedPlan.appStoreIdentifier : selectedPlan.playStoreIdentifier),
+    if (revenueCatSubscriptionOfferings != null &&
+        revenueCatSubscriptionOfferings!.current != null &&
+        revenueCatSubscriptionOfferings!
+            .current!.availablePackages.isNotEmpty) {
+      int index = revenueCatSubscriptionOfferings!.current!.availablePackages
+          .indexWhere(
+        (element) =>
+            element.storeProduct.identifier ==
+            (isIOS
+                ? selectedPlan.appStoreIdentifier
+                : selectedPlan.playStoreIdentifier),
       );
       if (index > -1) {
-        return revenueCatSubscriptionOfferings!.current!.availablePackages[index];
+        return revenueCatSubscriptionOfferings!
+            .current!.availablePackages[index];
       }
     } else {
       return null;
@@ -123,7 +141,9 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
       ..userId = appStore.userId;
 
     if (appConfigurationStore.isInAppPurchaseEnable) {
-      planRequestModel.activeRevenueCatIdentifier = isIOS ? selectedPricingPlan!.appStoreIdentifier : selectedPricingPlan!.playStoreIdentifier;
+      planRequestModel.activeRevenueCatIdentifier = isIOS
+          ? selectedPricingPlan!.appStoreIdentifier
+          : selectedPricingPlan!.playStoreIdentifier;
     }
 
     log('Request : ${planRequestModel.toJson()}');
@@ -172,7 +192,8 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   42.height,
-                  Text(languages.lblSelectPlan, style: boldTextStyle(size: 16)).center(),
+                  Text(languages.lblSelectPlan, style: boldTextStyle(size: 16))
+                      .center(),
                   8.height,
                   Text(
                     languages.selectPlanSubTitle,
@@ -182,13 +203,16 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                   AnimatedListView(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 90, top: 8, right: 8, left: 8),
+                    padding: const EdgeInsets.only(
+                        bottom: 90, top: 8, right: 8, left: 8),
                     itemCount: subscriptionPlanList.length,
                     itemBuilder: (_, index) {
-                      ProviderSubscriptionModel data = subscriptionPlanList[index];
+                      ProviderSubscriptionModel data =
+                          subscriptionPlanList[index];
                       StoreProduct? revenueCatProduct;
                       if (appConfigurationStore.isInAppPurchaseEnable) {
-                        revenueCatProduct = getSelectedPlanFromRevenueCat(data)?.storeProduct;
+                        revenueCatProduct =
+                            getSelectedPlanFromRevenueCat(data)?.storeProduct;
                       }
 
                       return AnimatedContainer(
@@ -197,7 +221,9 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                           borderRadius: radius(),
                           backgroundColor: context.scaffoldBackgroundColor,
                           border: Border.all(
-                            color: currentSelectedPlan == index ? primaryColor : context.dividerColor,
+                            color: currentSelectedPlan == index
+                                ? primaryColor
+                                : context.dividerColor,
                             width: 1.5,
                           ),
                         ),
@@ -249,9 +275,11 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                                       ),
                                     16.width,
                                     Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
@@ -266,19 +294,25 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                                                 style: boldTextStyle(),
                                               ).flexible(),
                                             if (revenueCatProduct == null) ...[
-                                              if (data.trialPeriod.validate() != 0 && data.identifier == FREE)
+                                              if (data.trialPeriod.validate() !=
+                                                      0 &&
+                                                  data.identifier == FREE)
                                                 RichText(
                                                   text: TextSpan(
-                                                    text: ' (${languages.lblTrialFor} ',
+                                                    text:
+                                                        ' (${languages.lblTrialFor} ',
                                                     style: secondaryTextStyle(),
                                                     children: <TextSpan>[
                                                       TextSpan(
-                                                        text: ' ${data.trialPeriod.validate()} ',
+                                                        text:
+                                                            ' ${data.trialPeriod.validate()} ',
                                                         style: boldTextStyle(),
                                                       ),
                                                       TextSpan(
-                                                        text: '${languages.lblDays})',
-                                                        style: secondaryTextStyle(),
+                                                        text:
+                                                            '${languages.lblDays})',
+                                                        style:
+                                                            secondaryTextStyle(),
                                                       ),
                                                     ],
                                                   ),
@@ -293,7 +327,9 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                                         ),
                                         8.height,
                                         Text(
-                                          data.title.validate().capitalizeFirstLetter(),
+                                          data.title
+                                              .validate()
+                                              .capitalizeFirstLetter(),
                                           style: secondaryTextStyle(),
                                         ),
                                       ],
@@ -318,7 +354,11 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                                           ),
                                         )
                                       : Text(
-                                          data.identifier == FREE ? '${languages.lblFreeTrial}' : data.amount.validate().toPriceFormat(),
+                                          data.identifier == FREE
+                                              ? '${languages.lblFreeTrial}'
+                                              : data.amount
+                                                  .validate()
+                                                  .toPriceFormat(),
                                           style: boldTextStyle(
                                             color: white,
                                             size: 12,
@@ -340,37 +380,65 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                                     padding: const EdgeInsets.all(16),
                                     width: context.width(),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
                                             Image.asset(
                                               getPlanStatusImage(
-                                                limitData: data.planLimitation!.service!,
+                                                limitData: data
+                                                    .planLimitation!.service!,
                                               ),
                                               width: 14,
                                               height: 14,
                                             ),
                                             8.width,
                                             getPlanStatus(
-                                              limitData: data.planLimitation!.service!,
+                                              limitData:
+                                                  data.planLimitation!.service!,
                                               name: 'Services',
                                             ),
                                           ],
                                         ),
+                                        if (data.planLimitation!.ecommerce !=
+                                            null) ...[
+                                          8.height,
+                                          Row(
+                                            children: [
+                                              Image.asset(
+                                                getPlanStatusImage(
+                                                  limitData: data
+                                                      .planLimitation!
+                                                      .ecommerce!,
+                                                ),
+                                                width: 14,
+                                                height: 14,
+                                              ),
+                                              8.width,
+                                              getPlanStatus(
+                                                limitData: data
+                                                    .planLimitation!.ecommerce!,
+                                                name: 'Ecommerce',
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                         8.height,
                                         Row(
                                           children: [
                                             Image.asset(
                                               getPlanStatusImage(
-                                                limitData: data.planLimitation!.handyman!,
+                                                limitData: data
+                                                    .planLimitation!.handyman!,
                                               ),
                                               width: 14,
                                               height: 14,
                                             ),
                                             8.width,
                                             getPlanStatus(
-                                              limitData: data.planLimitation!.handyman!,
+                                              limitData: data
+                                                  .planLimitation!.handyman!,
                                               name: 'Handyman',
                                             ),
                                           ],
@@ -380,18 +448,44 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                                           children: [
                                             Image.asset(
                                               getPlanStatusImage(
-                                                limitData: data.planLimitation!.featuredService!,
+                                                limitData: data.planLimitation!
+                                                    .featuredService!,
                                               ),
                                               width: 14,
                                               height: 14,
                                             ),
                                             8.width,
                                             getPlanStatus(
-                                              limitData: data.planLimitation!.featuredService!,
+                                              limitData: data.planLimitation!
+                                                  .featuredService!,
                                               name: 'Featured Services',
                                             ),
                                           ],
                                         ),
+                                        if (data.planLimitation!
+                                                .featuredEcommerce !=
+                                            null) ...[
+                                          8.height,
+                                          Row(
+                                            children: [
+                                              Image.asset(
+                                                getPlanStatusImage(
+                                                  limitData: data
+                                                      .planLimitation!
+                                                      .featuredEcommerce!,
+                                                ),
+                                                width: 14,
+                                                height: 14,
+                                              ),
+                                              8.width,
+                                              getPlanStatus(
+                                                limitData: data.planLimitation!
+                                                    .featuredEcommerce!,
+                                                name: 'Featured Ecommerce',
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -444,12 +538,15 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
               right: 16,
               child: AppButton(
                 child: Text(
-                  selectedPricingPlan!.identifier == FREE ? languages.lblProceed : languages.lblMakePayment,
+                  selectedPricingPlan!.identifier == FREE
+                      ? languages.lblProceed
+                      : languages.lblMakePayment,
                   style: boldTextStyle(color: white),
                 ),
                 color: primaryColor,
                 onTap: () async {
-                  if (selectedPricingPlan!.identifier == FREE || selectedPricingPlan!.amount.validate() == 0) {
+                  if (selectedPricingPlan!.identifier == FREE ||
+                      selectedPricingPlan!.amount.validate() == 0) {
                     await saveSubscriptionPurchase(
                       paymentType: PAYMENT_METHOD_COD,
                       transactionId: '',
@@ -457,12 +554,14 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
                   } else {
                     if (appConfigurationStore.isInAppPurchaseEnable) {
                       if (selectedPricingPlan != null) {
-                        Package? selectedRevenueCatPackage = await getSelectedPlanFromRevenueCat(
+                        Package? selectedRevenueCatPackage =
+                            await getSelectedPlanFromRevenueCat(
                           selectedPricingPlan!,
                         );
                         if (selectedRevenueCatPackage != null) {
                           inAppPurchaseService.startPurchase(
-                            selectedRevenueCatPackage: selectedRevenueCatPackage,
+                            selectedRevenueCatPackage:
+                                selectedRevenueCatPackage,
                             onComplete: (String transactionId) async {
                               await saveSubscriptionPurchase(
                                 paymentType: PAYMENT_METHOD_IN_APP_PURCHASE,
@@ -499,7 +598,8 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
           ),
         ],
       );
-    } else if (limitData.isChecked.validate() == 'on' && (limitData.limit == null || limitData.limit == "0")) {
+    } else if (limitData.isChecked.validate() == 'on' &&
+        (limitData.limit == null || limitData.limit == "0")) {
       return RichTextWidget(
         list: [
           TextSpan(
@@ -534,7 +634,8 @@ class _PricingPlanScreenState extends State<PricingPlanScreen> {
   String getPlanStatusImage({required LimitData limitData}) {
     if (limitData.isChecked == null) {
       return pricing_plan_accept;
-    } else if (limitData.isChecked.validate() == 'on' && (limitData.limit == null || limitData.limit == "0")) {
+    } else if (limitData.isChecked.validate() == 'on' &&
+        (limitData.limit == null || limitData.limit == "0")) {
       return pricing_plan_reject;
     } else {
       return pricing_plan_accept;

@@ -1,11 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:handyman_provider_flutter/components/app_widgets.dart';
 import 'package:handyman_provider_flutter/components/back_widget.dart';
 import 'package:handyman_provider_flutter/components/cached_image_widget.dart';
@@ -27,6 +25,7 @@ import 'package:handyman_provider_flutter/utils/dashed_rect.dart';
 import 'package:handyman_provider_flutter/utils/getImage.dart';
 import 'package:handyman_provider_flutter/utils/images.dart';
 import 'package:handyman_provider_flutter/utils/model_keys.dart';
+import 'package:handyman_provider_flutter/utils/permissions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -45,45 +44,40 @@ class ProductOrderDetailScreen extends StatefulWidget {
 class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
     with WidgetsBindingObserver {
   late Future<ProductOrderDetailResponse> future;
-  GoogleMapController? mapController;
-  LatLng? currentPosition;
-  BitmapDescriptor? customIcon;
   bool showBottomActionBar = false;
   String orderStatus = '';
   int assignedUserId = -1;
-  String? resolvedDeliveryAddress;
+  Timer? productOrderLocationTimer;
+  bool isUpdatingProductOrderLocation = false;
+  int productOrderLocationRefreshPeriodInSeconds = 30;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     init();
-    createMarker();
   }
 
   void init() {
-    future =
-        getProductOrderDetail({CommonKeys.id: widget.orderId}).then((value) {
+    future = getProductOrderDetail({
+      CommonKeys.id: widget.orderId,
+      'order_id': widget.orderId,
+    }).then((value) {
+      if (!mounted) return value;
       orderStatus = value.data?.effectiveDeliveryStatus ?? '';
       assignedUserId = value.data?.deliveryBoy?.id.validate() ??
           value.data?.handymanId.validate() ??
           -1;
-      afterBuildCreated(() {
-        prepareDeliveryAddressLocation(value.data);
-      });
+      startProductOrderLocationUpdates(value.data);
       return value;
     });
   }
 
-  Future<void> createMarker() async {
-    const ImageConfiguration imageConfiguration =
-        ImageConfiguration(size: Size(24, 24));
-    customIcon =
-        // ignore: deprecated_member_use
-        await BitmapDescriptor.fromAssetImage(imageConfiguration, indicator_2);
-  }
-
   Future<void> updateStatus(ProductOrderData order, String status) async {
+    if (status != ProductOrderStatusKeys.onGoing) {
+      stopProductOrderLocationUpdates();
+    }
+
     appStore.setLoading(true);
     await productOrderUpdate({
       CommonKeys.id: order.id.validate(),
@@ -91,11 +85,13 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
       'payment_status': order.paymentStatus.validate(),
     }).then((value) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(value.message.validate());
       init();
-      if (mounted) setState(() {});
+      setState(() {});
     }).catchError((e) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(e.toString());
     });
   }
@@ -107,71 +103,103 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
       CommonKeys.handymanId: [appStore.userId.validate()],
     }).then((value) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(value.message.validate());
       init();
-      if (mounted) setState(() {});
+      setState(() {});
       LiveStream().emit(LIVESTREAM_UPDATE_PRODUCT_ORDERS);
     }).catchError((e) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(e.toString());
     });
   }
 
-  void moveCamera() {
-    if (mapController != null && currentPosition != null) {
-      mapController!.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: currentPosition!, zoom: 15)));
-    }
+  bool canUpdateProductOrderLocation(ProductOrderData? order) {
+    if (order == null) return false;
+
+    final assignedToMe =
+        (order.deliveryBoy?.id.validate() ?? order.handymanId.validate()) ==
+            appStore.userId;
+
+    return assignedToMe &&
+        order.effectiveDeliveryStatus == ProductOrderStatusKeys.onGoing &&
+        (appStore.userType == USER_TYPE_PROVIDER ||
+            appStore.userType == USER_TYPE_HANDYMAN);
   }
 
-  Future<void> prepareDeliveryAddressLocation(ProductOrderData? order,
-      {bool force = false}) async {
-    final address = order?.mapAddress.validate() ?? '';
-    if (address.isEmpty) return;
-    if (!force &&
-        resolvedDeliveryAddress == address &&
-        currentPosition != null) {
+  Future<void> startProductOrderLocationUpdates(ProductOrderData? order) async {
+    if (!canUpdateProductOrderLocation(order)) {
+      stopProductOrderLocationUpdates();
       return;
     }
 
-    resolvedDeliveryAddress = address;
-    final addressCandidates = [
-      address,
-      order?.displayAddress.validate() ?? '',
-      order?.shipping?.fullAddress.validate() ?? '',
-    ].where((element) => element.isNotEmpty).toSet().toList();
-
-    for (final item in addressCandidates) {
-      try {
-        final locations = await locationFromAddress(item);
-        if (locations.isNotEmpty &&
-            mounted &&
-            resolvedDeliveryAddress == address) {
-          currentPosition = LatLng(
-            locations.first.latitude,
-            locations.first.longitude,
-          );
-          moveCamera();
-          setState(() {});
-          return;
-        }
-      } catch (e) {
-        log(e.toString());
-      }
+    if (!await Permissions.locationPermissionsGranted()) {
+      stopProductOrderLocationUpdates();
+      return;
     }
+
+    await updateCurrentProductOrderLocation(order!);
+
+    if (productOrderLocationTimer == null ||
+        !productOrderLocationTimer!.isActive) {
+      productOrderLocationTimer = Timer.periodic(
+        Duration(seconds: productOrderLocationRefreshPeriodInSeconds),
+        (timer) => updateCurrentProductOrderLocation(order),
+      );
+    }
+  }
+
+  Future<void> updateCurrentProductOrderLocation(ProductOrderData order) async {
+    if (isUpdatingProductOrderLocation ||
+        !canUpdateProductOrderLocation(order)) {
+      return;
+    }
+
+    isUpdatingProductOrderLocation = true;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+
+      await updateProductOrderLocation(
+        order.id.validate(),
+        position.latitude.toString(),
+        position.longitude.toString(),
+      );
+    } catch (e) {
+      log(e.toString());
+    } finally {
+      isUpdatingProductOrderLocation = false;
+    }
+  }
+
+  void stopProductOrderLocationUpdates() {
+    productOrderLocationTimer?.cancel();
+    productOrderLocationTimer = null;
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       init();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      stopProductOrderLocationUpdates();
     }
   }
 
   @override
   void dispose() {
+    stopProductOrderLocationUpdates();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void setState(fn) {
+    if (mounted) super.setState(fn);
   }
 
   Widget header(ProductOrderData order) {
@@ -371,6 +399,60 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
     ).paddingOnly(bottom: 12);
   }
 
+  Widget priceDetailWidget(ProductOrderData order) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Price Detail', style: boldTextStyle(size: LABEL_TEXT_SIZE))
+            .paddingSymmetric(horizontal: 16),
+        8.height,
+        Container(
+          width: context.width(),
+          padding: const EdgeInsets.all(16),
+          decoration: boxDecorationDefault(
+              color: context.cardColor, borderRadius: radius()),
+          child: Column(
+            children: [
+              priceDetailRow('Subtotal', order.subtotalFormat.validate()),
+              priceDetailRow('Tax', order.taxTotalFormat.validate()),
+              Divider(height: 28, thickness: 1, color: context.dividerColor),
+              priceDetailRow(
+                'Total',
+                order.totalFormat.validate(),
+                titleStyle: boldTextStyle(size: 16),
+                valueStyle: boldTextStyle(size: 18, color: primaryColor),
+                bottomPadding: 0,
+              ),
+            ],
+          ),
+        ).paddingSymmetric(horizontal: 16),
+        16.height,
+      ],
+    );
+  }
+
+  Widget priceDetailRow(
+    String title,
+    String value, {
+    TextStyle? titleStyle,
+    TextStyle? valueStyle,
+    double bottomPadding = 14,
+  }) {
+    if (value.validate().isEmpty) return const Offstage();
+
+    return Row(
+      children: [
+        Text(title, style: titleStyle ?? secondaryTextStyle(size: 15)).expand(),
+        12.width,
+        Text(
+          value,
+          style: valueStyle ?? boldTextStyle(size: 15),
+          textAlign: TextAlign.right,
+        ).expand(),
+      ],
+    ).paddingOnly(bottom: bottomPadding);
+  }
+
   bool canCustomerContact(ProductOrderData order) {
     return order.effectiveDeliveryStatus != ProductOrderStatusKeys.completed &&
         order.effectiveDeliveryStatus != ProductOrderStatusKeys.cancelled &&
@@ -554,6 +636,8 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
   }
 
   Widget productOrderDeliveryBoyWidget(ProductOrderData order) {
+    if (appStore.userType != USER_TYPE_PROVIDER) return const Offstage();
+
     final deliveryBoy = order.deliveryBoy;
     if (deliveryBoy == null) return const Offstage();
 
@@ -693,10 +777,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
   }
 
   Widget locationWidget(ProductOrderData order) {
-    final canShowMap = currentPosition != null;
-
-    if (!canShowMap && order.displayAddress.validate().isEmpty)
-      return const Offstage();
+    if (order.displayAddress.validate().isEmpty) return const Offstage();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -726,60 +807,6 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
               style: secondaryTextStyle(),
             ),
           ).onTap(() => launchMap(order.displayAddress)),
-        if (canShowMap) ...[
-          8.height,
-          Container(
-            height: 250,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: boxDecorationDefault(),
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(
-                  target: currentPosition ?? const LatLng(0, 0),
-                  zoom: currentPosition != null ? 15 : 1),
-              mapType: MapType.normal,
-              myLocationEnabled: false,
-              myLocationButtonEnabled: false,
-              gestureRecognizers: Set()
-                ..add(Factory<OneSequenceGestureRecognizer>(
-                    () => EagerGestureRecognizer()))
-                ..add(
-                    Factory<PanGestureRecognizer>(() => PanGestureRecognizer()))
-                ..add(Factory<ScaleGestureRecognizer>(
-                    () => ScaleGestureRecognizer()))
-                ..add(
-                    Factory<TapGestureRecognizer>(() => TapGestureRecognizer()))
-                ..add(Factory<VerticalDragGestureRecognizer>(
-                    () => VerticalDragGestureRecognizer())),
-              onMapCreated: (controller) {
-                mapController = controller;
-                moveCamera();
-              },
-              markers: currentPosition != null
-                  ? {
-                      Marker(
-                          markerId: const MarkerId('delivery_location'),
-                          position: currentPosition!,
-                          icon: customIcon ?? BitmapDescriptor.defaultMarker),
-                    }
-                  : {},
-            ),
-          ),
-          8.height,
-          Row(
-            children: [
-              const Spacer(),
-              AppButton(
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                color: primaryColor,
-                text: 'Refresh',
-                onTap: () {
-                  prepareDeliveryAddressLocation(order, force: true);
-                },
-              ),
-            ],
-          ).paddingSymmetric(horizontal: 16),
-        ],
         16.height,
       ],
     );
@@ -793,18 +820,18 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
         return Row(
           children: [
             AppButton(
-                    text: languages.accept,
-                    color: primaryColor,
-                    onTap: () =>
-                        updateStatus(order, ProductOrderStatusKeys.accepted))
-                .expand(),
+                text: languages.accept,
+                color: primaryColor,
+                onTap: () {
+                  updateStatus(order, ProductOrderStatusKeys.accepted);
+                }).expand(),
             16.width,
             AppButton(
-                    text: languages.decline,
-                    textColor: textPrimaryColorGlobal,
-                    onTap: () =>
-                        updateStatus(order, ProductOrderStatusKeys.rejected))
-                .expand(),
+                text: languages.decline,
+                textColor: textPrimaryColorGlobal,
+                onTap: () {
+                  updateStatus(order, ProductOrderStatusKeys.rejected);
+                }).expand(),
           ],
         );
       }
@@ -819,7 +846,9 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
                 shapeBorder: RoundedRectangleBorder(
                     borderRadius: radius(),
                     side: BorderSide(color: primaryColor)),
-                onTap: () => assignToMyself(order)).expand(),
+                onTap: () {
+                  assignToMyself(order);
+                }).expand(),
             16.width,
             AppButton(
               text: order.hasDeliveryBoy ? 'Reassign' : 'Assign Delivery Boy',
@@ -828,6 +857,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
                 AssignDeliveryBoyScreen(
                   orderId: order.id.validate(),
                   onUpdate: () {
+                    if (!mounted) return;
                     init();
                     setState(() {});
                   },
@@ -852,12 +882,20 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
             ).expand(),
             16.width,
             AppButton(
-                    text: 'Complete Order',
-                    color: primaryColor,
-                    onTap: () =>
-                        updateStatus(order, ProductOrderStatusKeys.completed))
-                .expand(),
+                text: 'Complete Order',
+                color: primaryColor,
+                onTap: () {
+                  updateStatus(order, ProductOrderStatusKeys.completed);
+                }).expand(),
           ],
+        );
+      }
+      if (order.effectiveDeliveryStatus == ProductOrderStatusKeys.completed) {
+        showBottomActionBar = true;
+        return AppButton(
+          text: 'Upload Proof',
+          color: primaryColor,
+          onTap: () => openProductProofScreen(order),
         );
       }
     }
@@ -872,7 +910,9 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
       return AppButton(
           text: 'Start Delivery',
           color: startDriveButtonColor,
-          onTap: () => updateStatus(order, ProductOrderStatusKeys.onGoing));
+          onTap: () {
+            updateStatus(order, ProductOrderStatusKeys.onGoing);
+          });
     }
     if ((isUserTypeHandyman || assignedToMe) &&
         order.effectiveDeliveryStatus == ProductOrderStatusKeys.onGoing) {
@@ -880,10 +920,14 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
       return AppButton(
           text: 'Mark Delivered',
           color: primaryColor,
-          onTap: () => updateStatus(order, ProductOrderStatusKeys.delivered));
+          onTap: () {
+            updateStatus(order, ProductOrderStatusKeys.delivered);
+          });
     }
     if ((isUserTypeHandyman || assignedToMe) &&
-        order.effectiveDeliveryStatus == ProductOrderStatusKeys.delivered) {
+        (order.effectiveDeliveryStatus == ProductOrderStatusKeys.delivered ||
+            order.effectiveDeliveryStatus ==
+                ProductOrderStatusKeys.completed)) {
       showBottomActionBar = true;
       return AppButton(
         text: 'Upload Proof',
@@ -896,6 +940,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
 
   void openProductProofScreen(ProductOrderData order) {
     ProductOrderProofScreen(order: order).launch(context).then((value) {
+      if (!mounted) return;
       if (value == true) {
         init();
         setState(() {});
@@ -912,6 +957,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
         onRetry: () {
           appStore.setLoading(true);
           init();
+          if (!mounted) return;
           setState(() {});
         },
       );
@@ -929,8 +975,10 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
             locationWidget(order),
             productsWidget(order),
             16.height,
+            priceDetailWidget(order),
             productOrderCustomerWidget(order),
-            productOrderDeliveryBoyWidget(order),
+            if (appStore.userType == USER_TYPE_PROVIDER)
+              productOrderDeliveryBoyWidget(order),
             infoCard('Payment', [
               infoRow('Method',
                   order.paymentMethod.validate().capitalizeFirstLetter()),
@@ -1007,6 +1055,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
               imageWidget: const ErrorStateWidget(),
               onRetry: () {
                 init();
+                if (!mounted) return;
                 setState(() {});
               },
             ),
@@ -1088,6 +1137,11 @@ class _ProductOrderProofScreenState extends State<ProductOrderProofScreen> {
     descriptionCont.dispose();
     descriptionFocus.dispose();
     super.dispose();
+  }
+
+  @override
+  void setState(fn) {
+    if (mounted) super.setState(fn);
   }
 
   @override

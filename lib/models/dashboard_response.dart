@@ -13,6 +13,8 @@ class DashboardResponse {
   bool? status;
   int? totalBooking;
   int? totalService;
+  int? totalProduct;
+  int? totalProductOrder;
   num? todayCashAmount;
   num? totalCashInHand;
   int? totalActiveHandyman;
@@ -40,6 +42,8 @@ class DashboardResponse {
   DashboardResponse({
     this.status,
     this.totalBooking,
+    this.totalProduct,
+    this.totalProductOrder,
     this.service,
     this.totalService,
     this.totalActiveHandyman,
@@ -61,12 +65,16 @@ class DashboardResponse {
     isEmailVerified = json['is_email_verified'];
     status = json['status'];
     totalBooking = json['total_booking'];
+    totalProduct = json['total_product'];
+    totalProductOrder = json['total_product_order'];
     totalRevenue = json['total_revenue'];
     totalService = json['total_service'];
     totalActiveHandyman = json['total_active_handyman'];
     todayCashAmount = json['today_cash'];
     totalCashInHand = json['total_cash_in_hand'];
-    commission = json['commission'] != null ? Commission.fromJson(json['commission']) : null;
+    commission = json['commission'] != null
+        ? Commission.fromJson(json['commission'])
+        : null;
     if (json['service'] != null) {
       service = [];
       json['service'].forEach((v) {
@@ -84,19 +92,35 @@ class DashboardResponse {
     chartData = [];
     it.forEachIndexed((element, index) {
       if ((element as Map).containsKey('${index + 1}')) {
-        chartData.add(RevenueChartData(month: months[index], revenue: element[(index + 1).toString()].toString().toDouble()));
+        chartData.add(RevenueChartData(
+            month: months[index],
+            revenue: element[(index + 1).toString()].toString().toDouble()));
       } else {
         chartData.add(RevenueChartData(month: months[index], revenue: 0));
       }
     });
 
-    providerWallet = json['provider_wallet'] != null ? ProviderWallet.fromJson(json['provider_wallet']) : null;
+    providerWallet = json['provider_wallet'] != null
+        ? ProviderWallet.fromJson(json['provider_wallet'])
+        : null;
 
-    onlineHandyman = json['online_handyman'] != null ? json['online_handyman'].cast<String>() : null;
-    myPostJobData = json['post_requests'] != null ? (json['post_requests'] as List).map((i) => PostJobData.fromJson(i)).toList() : null;
-    upcomingBookings = json['upcomming_booking'] != null ? (json['upcomming_booking'] as List).map((i) => BookingData.fromJson(i)).toList() : null;
+    onlineHandyman = json['online_handyman'] != null
+        ? json['online_handyman'].cast<String>()
+        : null;
+    myPostJobData = json['post_requests'] != null
+        ? (json['post_requests'] as List)
+            .map((i) => PostJobData.fromJson(i))
+            .toList()
+        : null;
+    upcomingBookings = json['upcomming_booking'] != null
+        ? (json['upcomming_booking'] as List)
+            .map((i) => BookingData.fromJson(i))
+            .toList()
+        : null;
     isSubscribed = json['is_subscribed'] ?? 0;
-    subscription = json['subscription'] != null ? ProviderSubscriptionModel.fromJson(json['subscription']) : null;
+    subscription = json['subscription'] != null
+        ? ProviderSubscriptionModel.fromJson(json['subscription'])
+        : null;
     notificationUnreadCount = json['notification_unread_count'];
     remainingPayout = json['remaining_payout'];
   }
@@ -105,6 +129,8 @@ class DashboardResponse {
     final Map<String, dynamic> data = Map<String, dynamic>();
     data['status'] = status;
     data['total_booking'] = totalBooking;
+    data['total_product'] = totalProduct;
+    data['total_product_order'] = totalProductOrder;
     data['total_service'] = totalService;
     data['today_cash'] = todayCashAmount;
     data['total_cash_in_hand'] = totalCashInHand;
@@ -130,7 +156,8 @@ class DashboardResponse {
     }
 
     if (upcomingBookings != null) {
-      data['upcomming_booking'] = upcomingBookings!.map((v) => v.toJson()).toList();
+      data['upcomming_booking'] =
+          upcomingBookings!.map((v) => v.toJson()).toList();
     }
     data['notification_unread_count'] = notificationUnreadCount;
     data['remaining_payout'] = remainingPayout;
@@ -148,7 +175,14 @@ class CategoryData {
   String? color;
   String? categoryImage;
 
-  CategoryData({this.id, this.name, this.status, this.description, this.isFeatured, this.color, this.categoryImage});
+  CategoryData(
+      {this.id,
+      this.name,
+      this.status,
+      this.description,
+      this.isFeatured,
+      this.color,
+      this.categoryImage});
 
   CategoryData.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -183,7 +217,15 @@ class Commission {
   String? type;
   String? updatedAt;
 
-  Commission({this.commission, this.createdAt, this.deletedAt, this.id, this.name, this.status, this.type, this.updatedAt});
+  Commission(
+      {this.commission,
+      this.createdAt,
+      this.deletedAt,
+      this.id,
+      this.name,
+      this.status,
+      this.type,
+      this.updatedAt});
 
   factory Commission.fromJson(Map<String, dynamic> json) {
     return Commission(
@@ -221,7 +263,8 @@ class ProviderWallet {
   String? createdAt;
   String? updatedAt;
 
-  ProviderWallet(this.id, this.title, this.userId, this.amount, this.status, this.createdAt, this.updatedAt);
+  ProviderWallet(this.id, this.title, this.userId, this.amount, this.status,
+      this.createdAt, this.updatedAt);
 
   ProviderWallet.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -254,7 +297,13 @@ class ServiceAddressMapping {
   String? updatedAt;
   ProviderAddressMapping? providerAddressMapping;
 
-  ServiceAddressMapping({this.id, this.serviceId, this.providerAddressId, this.createdAt, this.updatedAt, this.providerAddressMapping});
+  ServiceAddressMapping(
+      {this.id,
+      this.serviceId,
+      this.providerAddressId,
+      this.createdAt,
+      this.updatedAt,
+      this.providerAddressMapping});
 
   ServiceAddressMapping.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -262,7 +311,9 @@ class ServiceAddressMapping {
     providerAddressId = json['provider_address_id'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
-    providerAddressMapping = json['provider_address_mapping'] != null ? ProviderAddressMapping.fromJson(json['provider_address_mapping']) : null;
+    providerAddressMapping = json['provider_address_mapping'] != null
+        ? ProviderAddressMapping.fromJson(json['provider_address_mapping'])
+        : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -289,7 +340,15 @@ class ProviderAddressMapping {
   String? createdAt;
   String? updatedAt;
 
-  ProviderAddressMapping({this.id, this.providerId, this.address, this.latitude, this.longitude, this.status, this.createdAt, this.updatedAt});
+  ProviderAddressMapping(
+      {this.id,
+      this.providerId,
+      this.address,
+      this.latitude,
+      this.longitude,
+      this.status,
+      this.createdAt,
+      this.updatedAt});
 
   ProviderAddressMapping.fromJson(Map<String, dynamic> json) {
     id = json['id'];

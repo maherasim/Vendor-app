@@ -92,11 +92,13 @@ class ProductOrderData {
   int? paymentId;
   String? txnId;
   num? subtotal;
+  String? subtotalFormat;
   num? discount;
-  num? tax;
+  num? taxTotal;
+  String? taxTotalFormat;
   num? deliveryCharge;
-  num? totalAmount;
-  String? totalAmountFormat;
+  num? total;
+  String? totalFormat;
   String? date;
   String? description;
   int? customerId;
@@ -134,11 +136,13 @@ class ProductOrderData {
     this.paymentId,
     this.txnId,
     this.subtotal,
+    this.subtotalFormat,
     this.discount,
-    this.tax,
+    this.taxTotal,
+    this.taxTotalFormat,
     this.deliveryCharge,
-    this.totalAmount,
-    this.totalAmountFormat,
+    this.total,
+    this.totalFormat,
     this.date,
     this.description,
     this.customerId,
@@ -170,7 +174,8 @@ class ProductOrderData {
 
     return ProductOrderData(
       id: _parseInt(json['id']),
-      orderCode: json['order_code']?.toString(),
+      orderCode:
+          json['order_code']?.toString() ?? json['order_number']?.toString(),
       status: json['status']?.toString(),
       statusLabel: json['status_label']?.toString(),
       deliveryStatus:
@@ -178,16 +183,23 @@ class ProductOrderData {
       deliveryStatusLabel: json['delivery_status_label']?.toString() ??
           json['status_label']?.toString(),
       paymentStatus: json['payment_status']?.toString(),
-      paymentMethod: json['payment_method']?.toString(),
+      paymentMethod: json['payment_method']?.toString() ??
+          json['payment_type']?.toString(),
       paymentId: _parseInt(json['payment_id']),
       txnId: json['txn_id']?.toString(),
       subtotal: _parseNum(json['subtotal']),
+      subtotalFormat: (json['subtotal_format'] ?? '').toString(),
       discount: _parseNum(json['discount']),
-      tax: _parseNum(json['tax']),
+      taxTotal: _parseNum(json['tax_total'] ?? json['tax']),
+      taxTotalFormat:
+          (json['tax_total_format'] ?? json['tax_format'] ?? '').toString(),
       deliveryCharge: _parseNum(json['delivery_charge']),
-      totalAmount: _parseNum(json['total_amount']),
-      totalAmountFormat: json['total_amount_format']?.toString(),
-      date: json['date']?.toString(),
+      total: _parseNum(json['total'] ?? json['total_amount']),
+      totalFormat: (json['total_format'] ?? json['total_amount_format'] ?? '')
+          .toString(),
+      date: json['date']?.toString() ??
+          json['order_date']?.toString() ??
+          json['created_at']?.toString(),
       description: json['description']?.toString(),
       customerId: _parseInt(json['customer_id']),
       customerName: json['customer_name']?.toString(),
@@ -270,9 +282,9 @@ class ProductOrderData {
       : items.validate().isNotEmpty
           ? items!.first.image.validate()
           : '';
-  String get displayTotal => totalAmountFormat.validate().isNotEmpty
-      ? totalAmountFormat.validate()
-      : totalAmount.validate().toString();
+  String get displayTotal => totalFormat.validate().isNotEmpty
+      ? totalFormat.validate()
+      : total.validate().toString();
   bool get hasDeliveryBoy => deliveryBoy != null || handymanId.validate() > 0;
   String get effectiveDeliveryStatus => deliveryStatus.validate().isNotEmpty
       ? deliveryStatus.validate()
@@ -432,20 +444,27 @@ class ProductOrderItem {
       this.variantLabel});
 
   factory ProductOrderItem.fromJson(Map<String, dynamic> json) {
+    final productJson = json['product'] is Map
+        ? Map<String, dynamic>.from(json['product'])
+        : <String, dynamic>{};
+
     return ProductOrderItem(
       id: _parseInt(json['id']),
       productId: _parseInt(json['product_id']),
-      name: json['name']?.toString(),
+      name: json['name']?.toString() ??
+          json['product_name']?.toString() ??
+          productJson['name']?.toString(),
       description: json['description']?.toString(),
-      image: json['image']?.toString(),
+      image: json['image']?.toString() ?? productJson['image']?.toString(),
       attachments: json['attachments'] is List
           ? List<String>.from(json['attachments'].map((e) => e.toString()))
           : [],
       quantity: _parseInt(json['quantity']),
-      price: _parseNum(json['price']),
-      priceFormat: json['price_format']?.toString(),
-      total: _parseNum(json['total']),
-      variantId: _parseInt(json['variant_id']),
+      price: _parseNum(json['price'] ?? json['unit_price']),
+      priceFormat: json['price_format']?.toString() ??
+          json['unit_price_format']?.toString(),
+      total: _parseNum(json['total'] ?? json['line_total']),
+      variantId: _parseInt(json['variant_id'] ?? json['product_variant_id']),
       variantLabel: json['variant_label']?.toString(),
     );
   }

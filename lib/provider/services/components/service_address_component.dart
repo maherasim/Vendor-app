@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:handyman_provider_flutter/main.dart';
-import 'package:handyman_provider_flutter/models/shop_model.dart';
 import 'package:handyman_provider_flutter/networks/rest_apis.dart';
 import 'package:nb_utils/nb_utils.dart';
 
@@ -16,7 +15,8 @@ class ServiceAddressComponent extends StatefulWidget {
   });
 
   @override
-  State<ServiceAddressComponent> createState() => _ServiceAddressComponentState();
+  State<ServiceAddressComponent> createState() =>
+      _ServiceAddressComponentState();
 }
 
 class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
@@ -32,18 +32,37 @@ class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
     getSelectedZone();
   }
 
+  @override
+  void didUpdateWidget(covariant ServiceAddressComponent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedList.validate().join(',') !=
+        widget.selectedList.validate().join(',')) {
+      applySelectedZones();
+    }
+  }
+
+  void applySelectedZones() {
+    if (widget.selectedList == null) return;
+
+    zoneList.forEach((element) {
+      element.isSelected = widget.selectedList!.contains(element.id.validate());
+    });
+
+    if (mounted) setState(() {});
+  }
+
   Future<void> getSelectedZone() async {
     await selectedZones(providerId: appStore.userId).then((value) {
       zoneList = value.zoneListResponse.validate();
 
       if (widget.selectedList != null) {
-        zoneList.forEach((element) {
-          log("${element.id}" + "${element.name.validate()}");
+        applySelectedZones();
 
-          element.isSelected = widget.selectedList!.contains(element.id.validate());
-        });
-
-        widget.onSelectedList.call(zoneList.where((element) => element.isSelected == true).map((e) => e.id.validate()).toList());
+        widget.onSelectedList.call(zoneList
+            .where((element) => element.isSelected == true)
+            .map((e) => e.id.validate())
+            .toList());
       }
 
       setState(() {});
@@ -70,7 +89,17 @@ class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
               tilePadding: const EdgeInsets.symmetric(horizontal: 16),
               childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
               initiallyExpanded: widget.selectedList.validate().isNotEmpty,
-              title: Text(languages.selectServiceZones, style: secondaryTextStyle()),
+              title: Text(
+                zoneList.any((element) => element.isSelected == true)
+                    ? zoneList
+                        .where((element) => element.isSelected == true)
+                        .map((e) => e.name.validate())
+                        .join(', ')
+                    : languages.selectServiceZones,
+                style: zoneList.any((element) => element.isSelected == true)
+                    ? primaryTextStyle()
+                    : secondaryTextStyle(),
+              ),
               onExpansionChanged: (value) {
                 isExpanded = value;
                 setState(() {});
@@ -78,7 +107,9 @@ class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
               trailing: AnimatedCrossFade(
                 firstChild: const Icon(Icons.arrow_drop_down),
                 secondChild: const Icon(Icons.arrow_drop_up),
-                crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                crossFadeState: isExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
                 duration: 200.milliseconds,
               ),
               children: zoneList.map((data) {
@@ -86,16 +117,22 @@ class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
                   margin: const EdgeInsets.only(bottom: 8.0),
                   child: Theme(
                     data: ThemeData(
-                      unselectedWidgetColor: appStore.isDarkMode ? context.dividerColor : context.iconColor,
+                      unselectedWidgetColor: appStore.isDarkMode
+                          ? context.dividerColor
+                          : context.iconColor,
                     ),
                     child: CheckboxListTile(
-                      checkboxShape: RoundedRectangleBorder(borderRadius: radius(4)),
+                      checkboxShape:
+                          RoundedRectangleBorder(borderRadius: radius(4)),
                       autofocus: false,
                       activeColor: context.primaryColor,
-                      checkColor: appStore.isDarkMode ? context.iconColor : context.cardColor,
+                      checkColor: appStore.isDarkMode
+                          ? context.iconColor
+                          : context.cardColor,
                       dense: true,
                       visualDensity: VisualDensity.compact,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
                       title: Text(
                         data.name.validate(),
                         style: secondaryTextStyle(color: context.iconColor),
@@ -104,7 +141,10 @@ class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
                       onChanged: (bool? val) {
                         data.isSelected = val ?? false;
                         widget.onSelectedList.call(
-                          zoneList.where((element) => element.isSelected == true).map((e) => e.id.validate()).toList(),
+                          zoneList
+                              .where((element) => element.isSelected == true)
+                              .map((e) => e.id.validate())
+                              .toList(),
                         );
                         setState(() {});
                       },
@@ -119,5 +159,3 @@ class _ServiceAddressComponentState extends State<ServiceAddressComponent> {
     );
   }
 }
-
-

@@ -7,10 +7,13 @@ class CategoryResponse {
   CategoryResponse({this.pagination, this.data});
 
   CategoryResponse.fromJson(Map<String, dynamic> json) {
-    pagination = json['pagination'] != null ? Pagination.fromJson(json['pagination']) : null;
-    if (json['data'] != null) {
+    pagination = json['pagination'] != null
+        ? Pagination.fromJson(json['pagination'])
+        : null;
+    final categoryData = json['data'] ?? json['results'];
+    if (categoryData != null) {
       data = [];
-      json['data'].forEach((v) {
+      categoryData.forEach((v) {
         data!.add(CategoryData.fromJson(v));
       });
     }
@@ -41,22 +44,33 @@ class CategoryData {
   String? categoryName;
   int? services;
 
-  CategoryData({this.id, this.name, this.status, this.description, this.isFeatured, this.color, this.categoryImage, this.categoryId, this.categoryExtension, this.categoryName, this.services});
+  CategoryData(
+      {this.id,
+      this.name,
+      this.status,
+      this.description,
+      this.isFeatured,
+      this.color,
+      this.categoryImage,
+      this.categoryId,
+      this.categoryExtension,
+      this.categoryName,
+      this.services});
 
   //CategoryData({this.id, this.name, this.status, this.description, this.isFeatured, this.color, this.categoryImage});
 
   CategoryData.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'];
-    status = json['status'];
+    id = parseInt(json['id']);
+    name = json['name']?.toString() ?? json['text']?.toString();
+    status = parseInt(json['status']);
     description = json['description'];
-    isFeatured = json['is_featured'];
+    isFeatured = parseInt(json['is_featured']);
     color = json['color'];
     categoryImage = json['category_image'];
-    categoryId = json['category_id'];
+    categoryId = parseInt(json['category_id']);
     categoryExtension = json['category_extension'];
-    categoryName = json['category_name'];
-    services = json['services'];
+    categoryName = json['category_name']?.toString();
+    services = parseInt(json['services']);
   }
 
   Map<String, dynamic> toJson() {
@@ -73,5 +87,13 @@ class CategoryData {
     data['category_name'] = categoryName;
     data['services'] = services;
     return data;
+  }
+
+  static int? parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is bool) return value ? 1 : 0;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

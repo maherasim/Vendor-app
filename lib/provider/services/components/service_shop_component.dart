@@ -71,7 +71,17 @@ class _ServiceShopComponentState extends State<ServiceShopComponent> {
               tilePadding: const EdgeInsets.symmetric(horizontal: 16),
               childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
               initiallyExpanded: widget.selectedList.validate().isNotEmpty,
-              title: Text("Select Shop", style: secondaryTextStyle()),
+              title: Text(
+                shopsList.any((element) => element.isSelected == true)
+                    ? shopsList
+                        .where((element) => element.isSelected == true)
+                        .map((e) => e.name.validate())
+                        .join(', ')
+                    : "Select Shop",
+                style: shopsList.any((element) => element.isSelected == true)
+                    ? primaryTextStyle()
+                    : secondaryTextStyle(),
+              ),
               onExpansionChanged: (value) {
                 isExpanded = value;
                 setState(() {});

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:handyman_provider_flutter/components/my_provider_widget.dart';
+import 'package:handyman_provider_flutter/components/vendor_guide_video_dialog.dart';
 import 'package:handyman_provider_flutter/fragments/booking_fragment.dart';
 import 'package:handyman_provider_flutter/fragments/notification_fragment.dart';
 import 'package:handyman_provider_flutter/handyman/screen/fragments/handyman_fragment.dart';
@@ -122,6 +123,17 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
     }
   }
 
+  Future<void> openVendorGuideVideo() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: radius()),
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      builder: (context) => const VendorGuideVideoDialog(),
+    );
+  }
+
   @override
   void setState(fn) {
     if (mounted) super.setState(fn);
@@ -154,6 +166,11 @@ class _HandymanDashboardScreenState extends State<HandymanDashboardScreen> {
           textColor: Colors.white,
           showBack: false,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.play_circle_outline, color: Colors.white),
+              tooltip: 'Vendor guide video',
+              onPressed: openVendorGuideVideo,
+            ),
             IconButton(
               icon: ic_info.iconImage(color: Colors.white),
               onPressed: () async {

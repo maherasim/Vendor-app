@@ -53,7 +53,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
       lastPageCallback: (value) {
         isLastPage = value;
       },
-    ).whenComplete(() => appStore.setLoading(false));
+    ).then((value) {
+      products.sort(
+        (a, b) => b.isFeatured.validate().compareTo(a.isFeatured.validate()),
+      );
+      return value;
+    }).whenComplete(() => appStore.setLoading(false));
     setState(() {});
   }
 
@@ -243,82 +248,124 @@ class ProductItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isFeatured = product.isFeatured.validate() == 1;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: boxDecorationWithRoundedCorners(
           backgroundColor: context.cardColor, borderRadius: radius(8)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          CachedImageWidget(
-            url: product.productImage.validate(),
-            height: 74,
-            width: 74,
-            fit: BoxFit.cover,
-            radius: 8,
-          ),
-          12.width,
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(product.name.validate(),
-                  style: boldTextStyle(size: 14),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-              6.height,
-              Text(
-                  product.priceFormat
-                      .validate(value: product.price.validate().toString()),
-                  style: boldTextStyle(color: primaryColor, size: 13)),
-              6.height,
+              if (isFeatured) 16.height,
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                      product.status == 1
-                          ? languages.active
-                          : languages.inactive,
-                      style: secondaryTextStyle(size: 12)),
-                  8.width,
-                  if (product.serviceRequestStatus.validate().isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: boxDecorationWithRoundedCorners(
-                          backgroundColor: primaryColor.withValues(alpha: 0.1),
-                          borderRadius: radius(6)),
-                      child: Text(
-                          product.serviceRequestStatus
+                  CachedImageWidget(
+                    url: product.productImage.validate(),
+                    height: 74,
+                    width: 74,
+                    fit: BoxFit.cover,
+                    radius: 8,
+                  ),
+                  12.width,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(product.name.validate(),
+                          style: boldTextStyle(size: 14),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                      6.height,
+                      Text(
+                          product.priceFormat.validate(
+                              value: product.price.validate().toString()),
+                          style: boldTextStyle(color: primaryColor, size: 13)),
+                      6.height,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                              product.status == 1
+                                  ? languages.active
+                                  : languages.inactive,
+                              style: secondaryTextStyle(size: 12)),
+                          if (product.serviceRequestStatus
                               .validate()
-                              .capitalizeFirstLetter(),
-                          style: boldTextStyle(size: 10, color: primaryColor)),
-                    ),
+                              .isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: boxDecorationWithRoundedCorners(
+                                  backgroundColor:
+                                      primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: radius(6)),
+                              child: Text(
+                                  product.serviceRequestStatus
+                                      .validate()
+                                      .capitalizeFirstLetter(),
+                                  style: boldTextStyle(
+                                      size: 10, color: primaryColor)),
+                            ),
+                        ],
+                      ),
+                      if (product.totalStock != null) ...[
+                        6.height,
+                        Text('Stock: ${product.totalStock.validate()}',
+                            style: secondaryTextStyle(size: 12)),
+                      ],
+                    ],
+                  ).expand(),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: context.iconColor),
+                    onSelected: (value) {
+                      if (value == 'edit') onEdit();
+                      if (value == 'delete') onDelete();
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                          value: 'edit',
+                          child: Text(languages.lblEdit,
+                              style: primaryTextStyle())),
+                      PopupMenuItem(
+                          value: 'delete',
+                          child: Text(languages.lblDelete,
+                              style: primaryTextStyle(color: redColor))),
+                    ],
+                  ),
                 ],
               ),
-              if (product.totalStock != null) ...[
-                6.height,
-                Text('Stock: ${product.totalStock.validate()}',
-                    style: secondaryTextStyle(size: 12)),
-              ],
-            ],
-          ).expand(),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: context.iconColor),
-            onSelected: (value) {
-              if (value == 'edit') onEdit();
-              if (value == 'delete') onDelete();
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                  value: 'edit',
-                  child: Text(languages.lblEdit, style: primaryTextStyle())),
-              PopupMenuItem(
-                  value: 'delete',
-                  child: Text(languages.lblDelete,
-                      style: primaryTextStyle(color: redColor))),
             ],
           ),
+          if (isFeatured) featuredBanner(),
         ],
+      ),
+    );
+  }
+
+  Widget featuredBanner() {
+    return Positioned(
+      top: 0,
+      left: 0,
+      child: Container(
+        height: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: Color(0xFFFF9F0A),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(8),
+            bottomRight: Radius.circular(10),
+          ),
+        ),
+        child: Text(
+          'FEATURED',
+          style: boldTextStyle(color: white, size: 10),
+        ),
       ),
     );
   }

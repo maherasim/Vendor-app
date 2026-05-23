@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:handyman_provider_flutter/main.dart';
 import 'package:handyman_provider_flutter/models/dashboard_response.dart';
 import 'package:handyman_provider_flutter/provider/components/total_widget.dart';
+import 'package:handyman_provider_flutter/provider/product/product_list_screen.dart';
 import 'package:handyman_provider_flutter/provider/services/service_list_screen.dart';
 import 'package:handyman_provider_flutter/screens/total_earning_screen.dart';
 import 'package:handyman_provider_flutter/utils/constant.dart';
@@ -38,6 +39,28 @@ class TotalComponent extends StatelessWidget {
         ).onTap(
           () {
             ServiceListScreen().launch(context);
+          },
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+        ),
+        TotalWidget(
+          title: 'Total Products',
+          total: snap.totalProduct.validate().toString(),
+          icon: ic_packages,
+        ).onTap(
+          () {
+            const ProductListScreen().launch(context);
+          },
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+        ),
+        TotalWidget(
+          title: 'Product Orders',
+          total: snap.totalProductOrder.validate().toString(),
+          icon: ic_packages,
+        ).onTap(
+          () {
+            LiveStream().emit(LIVESTREAM_PROVIDER_ALL_BOOKING, 2);
           },
           highlightColor: Colors.transparent,
           splashColor: Colors.transparent,
