@@ -48,6 +48,7 @@ class _ProductOrderFragmentState extends State<ProductOrderFragment> {
     super.initState();
     init();
     LiveStream().on(LIVESTREAM_UPDATE_PRODUCT_ORDERS, (_) {
+      if (!mounted) return;
       page = 1;
       appStore.setLoading(true);
       init();
@@ -86,6 +87,11 @@ class _ProductOrderFragmentState extends State<ProductOrderFragment> {
     searchCont.dispose();
     LiveStream().dispose(LIVESTREAM_UPDATE_PRODUCT_ORDERS);
     super.dispose();
+  }
+
+  @override
+  void setState(fn) {
+    if (mounted) super.setState(fn);
   }
 
   String statusLabel(String value) => value == ProductOrderStatusKeys.all

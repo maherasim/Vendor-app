@@ -32,10 +32,11 @@ class _ProductOrderItemComponentState extends State<ProductOrderItemComponent> {
       'payment_status': widget.order.paymentStatus.validate(),
     }).then((value) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(value.message.validate());
-      LiveStream().emit(LIVESTREAM_UPDATE_PRODUCT_ORDERS);
     }).catchError((e) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(e.toString());
     });
   }
@@ -47,11 +48,27 @@ class _ProductOrderItemComponentState extends State<ProductOrderItemComponent> {
       CommonKeys.handymanId: [appStore.userId.validate()],
     }).then((value) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(value.message.validate());
       LiveStream().emit(LIVESTREAM_UPDATE_PRODUCT_ORDERS);
     }).catchError((e) {
       appStore.setLoading(false);
+      if (!mounted) return;
       toast(e.toString());
+    });
+  }
+
+  void updateStatusAfterDialog(String status) {
+    Future.microtask(() {
+      if (!mounted) return;
+      updateStatus(status);
+    });
+  }
+
+  void assignToMyselfAfterDialog() {
+    Future.microtask(() {
+      if (!mounted) return;
+      assignToMyself();
     });
   }
 
@@ -215,8 +232,8 @@ class _ProductOrderItemComponentState extends State<ProductOrderItemComponent> {
                       positiveText: languages.lblYes,
                       negativeText: languages.lblNo,
                       primaryColor: context.primaryColor,
-                      onAccept: (_) =>
-                          updateStatus(ProductOrderStatusKeys.accepted),
+                      onAccept: (_) => updateStatusAfterDialog(
+                          ProductOrderStatusKeys.accepted),
                     );
                   },
                   child: Text(languages.accept,
@@ -236,8 +253,8 @@ class _ProductOrderItemComponentState extends State<ProductOrderItemComponent> {
                       positiveText: languages.lblYes,
                       negativeText: languages.lblNo,
                       primaryColor: redColor,
-                      onAccept: (_) =>
-                          updateStatus(ProductOrderStatusKeys.rejected),
+                      onAccept: (_) => updateStatusAfterDialog(
+                          ProductOrderStatusKeys.rejected),
                     );
                   },
                   child: Text(languages.decline, style: boldTextStyle()),
@@ -263,7 +280,7 @@ class _ProductOrderItemComponentState extends State<ProductOrderItemComponent> {
                       positiveText: languages.lblYes,
                       negativeText: languages.lblCancel,
                       primaryColor: context.primaryColor,
-                      onAccept: (_) => assignToMyself(),
+                      onAccept: (_) => assignToMyselfAfterDialog(),
                     );
                   },
                 ).expand(),

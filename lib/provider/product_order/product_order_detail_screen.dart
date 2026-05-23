@@ -65,9 +65,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
     }).then((value) {
       if (!mounted) return value;
       orderStatus = value.data?.effectiveDeliveryStatus ?? '';
-      assignedUserId = value.data?.deliveryBoy?.id.validate() ??
-          value.data?.handymanId.validate() ??
-          -1;
+      assignedUserId = productOrderAssignedUserId(value.data);
       startProductOrderLocationUpdates(value.data);
       return value;
     });
@@ -115,17 +113,32 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
     });
   }
 
+  int productOrderAssignedUserId(ProductOrderData? order) {
+    if (order == null) return -1;
+    if (order.deliveryBoy?.id.validate() == appStore.userId) {
+      return order.deliveryBoy!.id.validate();
+    }
+    if (order.handymanId.validate() == appStore.userId) {
+      return order.handymanId.validate();
+    }
+
+    return order.deliveryBoy?.id.validate() ?? order.handymanId.validate();
+  }
+
+  bool isProductOrderAssignedToCurrentUser(ProductOrderData order) {
+    return order.deliveryBoy?.id.validate() == appStore.userId ||
+        order.handymanId.validate() == appStore.userId;
+  }
+
   bool canUpdateProductOrderLocation(ProductOrderData? order) {
     if (order == null) return false;
+    if (order.effectiveDeliveryStatus != ProductOrderStatusKeys.onGoing) {
+      return false;
+    }
 
-    final assignedToMe =
-        (order.deliveryBoy?.id.validate() ?? order.handymanId.validate()) ==
-            appStore.userId;
+    if (isUserTypeHandyman) return true;
 
-    return assignedToMe &&
-        order.effectiveDeliveryStatus == ProductOrderStatusKeys.onGoing &&
-        (appStore.userType == USER_TYPE_PROVIDER ||
-            appStore.userType == USER_TYPE_HANDYMAN);
+    return isUserTypeProvider && isProductOrderAssignedToCurrentUser(order);
   }
 
   Future<void> startProductOrderLocationUpdates(ProductOrderData? order) async {
@@ -900,9 +913,7 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
       }
     }
 
-    final assignedToMe =
-        (order.deliveryBoy?.id.validate() ?? order.handymanId.validate()) ==
-            appStore.userId;
+    final assignedToMe = isProductOrderAssignedToCurrentUser(order);
     if ((isUserTypeHandyman || assignedToMe) &&
         (order.isDeliveryAccepted ||
             order.effectiveDeliveryStatus == ProductOrderStatusKeys.assigned)) {

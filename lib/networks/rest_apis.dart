@@ -2203,6 +2203,7 @@ Future<UpdateLocationResponse> updateProductOrderLocation(
         'product-order-update-location',
         request: {
           CommonKeys.id: orderId,
+          'order_id': orderId,
           'latitude': latitude,
           'longitude': longitude,
         },
