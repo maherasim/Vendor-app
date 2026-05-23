@@ -468,6 +468,8 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
             children: [
               priceDetailRow('Subtotal', order.subtotalFormat.validate()),
               priceDetailRow('Tax', order.taxTotalFormat.validate()),
+              priceDetailRow(
+                  'Shipping Charge', order.deliveryChargeFormat.validate()),
               Divider(height: 28, thickness: 1, color: context.dividerColor),
               priceDetailRow(
                 'Total',

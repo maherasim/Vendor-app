@@ -97,6 +97,7 @@ class ProductOrderData {
   num? taxTotal;
   String? taxTotalFormat;
   num? deliveryCharge;
+  String? deliveryChargeFormat;
   num? total;
   String? totalFormat;
   String? date;
@@ -141,6 +142,7 @@ class ProductOrderData {
     this.taxTotal,
     this.taxTotalFormat,
     this.deliveryCharge,
+    this.deliveryChargeFormat,
     this.total,
     this.totalFormat,
     this.date,
@@ -193,7 +195,12 @@ class ProductOrderData {
       taxTotal: _parseNum(json['tax_total'] ?? json['tax']),
       taxTotalFormat:
           (json['tax_total_format'] ?? json['tax_format'] ?? '').toString(),
-      deliveryCharge: _parseNum(json['delivery_charge']),
+      deliveryCharge:
+          _parseNum(json['shipping_charge'] ?? json['delivery_charge']),
+      deliveryChargeFormat: (json['shipping_charge_format'] ??
+              json['delivery_charge_format'] ??
+              '')
+          .toString(),
       total: _parseNum(json['total'] ?? json['total_amount']),
       totalFormat: (json['total_format'] ?? json['total_amount_format'] ?? '')
           .toString(),
