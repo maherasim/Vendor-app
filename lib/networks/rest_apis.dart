@@ -2151,6 +2151,18 @@ Future<BaseResponseModel> productOrderUpdate(Map request) async {
   return res;
 }
 
+Future<BaseResponseModel> productOrderCashPaymentPaid(Map request) async {
+  BaseResponseModel res = BaseResponseModel.fromJson(
+    await handleResponse(
+      await buildHttpResponse('product-order-cash-payment-paid',
+          request: request, method: HttpMethodType.POST),
+    ),
+  );
+  LiveStream().emit(LIVESTREAM_UPDATE_PRODUCT_ORDERS);
+  appStore.setLoading(false);
+  return res;
+}
+
 Future<BaseResponseModel> assignProductOrder(Map request) async {
   return BaseResponseModel.fromJson(
     await handleResponse(

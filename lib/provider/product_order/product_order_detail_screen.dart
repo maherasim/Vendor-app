@@ -113,6 +113,46 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
     });
   }
 
+  bool canCollectProductOrderPayment(ProductOrderData order) {
+    return order.effectiveDeliveryStatus == ProductOrderStatusKeys.delivered &&
+        order.paymentStatus.validate().toLowerCase() == PENDING;
+  }
+
+  Future<void> collectProductOrderPayment(
+      ProductOrderData order, String remarks) async {
+    appStore.setLoading(true);
+    await productOrderCashPaymentPaid({
+      CommonKeys.id: order.id.validate(),
+      'remarks': remarks.validate(value: 'Cash collected'),
+    }).then((value) {
+      appStore.setLoading(false);
+      if (!mounted) return;
+      toast(value.message.validate());
+      init();
+      setState(() {});
+    }).catchError((e) {
+      appStore.setLoading(false);
+      if (!mounted) return;
+      toast(e.toString());
+    });
+  }
+
+  void showCollectProductOrderPaymentDialog(ProductOrderData order) {
+    showInDialog(
+      context,
+      contentPadding: EdgeInsets.zero,
+      builder: (_) {
+        return ProductOrderCashPaymentDialog(
+          order: order,
+          onAccept: (remarks) {
+            finish(context);
+            collectProductOrderPayment(order, remarks);
+          },
+        );
+      },
+    );
+  }
+
   int productOrderAssignedUserId(ProductOrderData? order) {
     if (order == null) return -1;
     if (order.deliveryBoy?.id.validate() == appStore.userId) {
@@ -895,10 +935,16 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
             ).expand(),
             16.width,
             AppButton(
-                text: 'Complete Order',
+                text: canCollectProductOrderPayment(order)
+                    ? 'Collect Payment'
+                    : 'Complete Order',
                 color: primaryColor,
                 onTap: () {
-                  updateStatus(order, ProductOrderStatusKeys.completed);
+                  if (canCollectProductOrderPayment(order)) {
+                    showCollectProductOrderPaymentDialog(order);
+                  } else {
+                    updateStatus(order, ProductOrderStatusKeys.completed);
+                  }
                 }).expand(),
           ],
         );
@@ -940,6 +986,27 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
             order.effectiveDeliveryStatus ==
                 ProductOrderStatusKeys.completed)) {
       showBottomActionBar = true;
+      if (canCollectProductOrderPayment(order)) {
+        return Row(
+          children: [
+            AppButton(
+              text: 'Upload Proof',
+              color: context.scaffoldBackgroundColor,
+              textColor: primaryColor,
+              shapeBorder: RoundedRectangleBorder(
+                  borderRadius: radius(),
+                  side: BorderSide(color: primaryColor)),
+              onTap: () => openProductProofScreen(order),
+            ).expand(),
+            16.width,
+            AppButton(
+              text: 'Collect Payment',
+              color: primaryColor,
+              onTap: () => showCollectProductOrderPaymentDialog(order),
+            ).expand(),
+          ],
+        );
+      }
       return AppButton(
         text: 'Upload Proof',
         color: primaryColor,
@@ -1072,6 +1139,101 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
             ),
           ),
           Observer(builder: (_) => LoaderWidget().visible(appStore.isLoading)),
+        ],
+      ),
+    );
+  }
+}
+
+class ProductOrderCashPaymentDialog extends StatefulWidget {
+  final ProductOrderData order;
+  final Function(String remarks) onAccept;
+
+  const ProductOrderCashPaymentDialog({
+    Key? key,
+    required this.order,
+    required this.onAccept,
+  }) : super(key: key);
+
+  @override
+  State<ProductOrderCashPaymentDialog> createState() =>
+      _ProductOrderCashPaymentDialogState();
+}
+
+class _ProductOrderCashPaymentDialogState
+    extends State<ProductOrderCashPaymentDialog> {
+  final TextEditingController remarkCont =
+      TextEditingController(text: 'Cash collected');
+
+  @override
+  void dispose() {
+    remarkCont.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: context.width(),
+      padding: const EdgeInsets.all(16),
+      color: context.cardColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RichTextWidget(
+            textAlign: TextAlign.center,
+            list: [
+              TextSpan(
+                  text: 'Cash payment for order ', style: primaryTextStyle()),
+              TextSpan(text: widget.order.displayCode, style: boldTextStyle()),
+              TextSpan(text: ' is collected.', style: primaryTextStyle()),
+            ],
+          ),
+          26.height,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Amount received: ', style: secondaryTextStyle()),
+              Text(widget.order.displayTotal, style: boldTextStyle(size: 16)),
+            ],
+          ).center(),
+          26.height,
+          AppTextField(
+            textFieldType: TextFieldType.MULTILINE,
+            controller: remarkCont,
+            decoration: inputDecoration(
+              context,
+              hint: languages.remark,
+              fillColor: context.scaffoldBackgroundColor,
+            ),
+            minLines: 4,
+          ),
+          32.height,
+          Row(
+            children: [
+              AppButton(
+                text: languages.lblCancel,
+                onTap: () {
+                  finish(context);
+                },
+                color: context.scaffoldBackgroundColor,
+                shapeBorder: RoundedRectangleBorder(
+                    side: BorderSide(color: context.primaryColor),
+                    borderRadius: radius()),
+                textColor: context.primaryColor,
+              ).expand(),
+              16.width,
+              AppButton(
+                text: languages.confirm,
+                color: context.primaryColor,
+                onTap: () {
+                  widget.onAccept.call(
+                    remarkCont.text.validate(value: 'Cash collected'),
+                  );
+                },
+              ).expand(),
+            ],
+          ),
         ],
       ),
     );
