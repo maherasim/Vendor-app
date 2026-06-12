@@ -17,6 +17,7 @@ class DashboardResponse {
   int? totalProductOrder;
   num? todayCashAmount;
   num? totalCashInHand;
+  num? totalCashInHandProducts;
   int? totalActiveHandyman;
   List<ServiceData>? service;
   List<UserData>? handyman;
@@ -48,6 +49,7 @@ class DashboardResponse {
     this.totalService,
     this.totalActiveHandyman,
     this.totalCashInHand,
+    this.totalCashInHandProducts,
     this.handyman,
     this.totalRevenue,
     this.commission,
@@ -72,6 +74,7 @@ class DashboardResponse {
     totalActiveHandyman = json['total_active_handyman'];
     todayCashAmount = json['today_cash'];
     totalCashInHand = json['total_cash_in_hand'];
+    totalCashInHandProducts = parseNum(json['total_cash_in_hand_products']);
     commission = json['commission'] != null
         ? Commission.fromJson(json['commission'])
         : null;
@@ -134,6 +137,7 @@ class DashboardResponse {
     data['total_service'] = totalService;
     data['today_cash'] = todayCashAmount;
     data['total_cash_in_hand'] = totalCashInHand;
+    data['total_cash_in_hand_products'] = totalCashInHandProducts;
     data['is_email_verified'] = isEmailVerified;
     if (commission != null) {
       data['commission'] = commission!.toJson();
@@ -163,6 +167,12 @@ class DashboardResponse {
     data['remaining_payout'] = remainingPayout;
 
     return data;
+  }
+
+  static num? parseNum(dynamic value) {
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value);
+    return null;
   }
 }
 

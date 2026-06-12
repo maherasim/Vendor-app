@@ -11,6 +11,7 @@ import 'package:handyman_provider_flutter/components/custom_image_picker.dart';
 import 'package:handyman_provider_flutter/components/empty_error_state_widget.dart';
 import 'package:handyman_provider_flutter/components/handyman_name_widget.dart';
 import 'package:handyman_provider_flutter/components/image_border_component.dart';
+import 'package:handyman_provider_flutter/components/pdf_viewer_component.dart';
 import 'package:handyman_provider_flutter/main.dart';
 import 'package:handyman_provider_flutter/models/product_order_model.dart';
 import 'package:handyman_provider_flutter/models/user_data.dart';
@@ -28,6 +29,7 @@ import 'package:handyman_provider_flutter/utils/model_keys.dart';
 import 'package:handyman_provider_flutter/utils/permissions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProductOrderDetailScreen extends StatefulWidget {
@@ -135,6 +137,33 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
       if (!mounted) return;
       toast(e.toString());
     });
+  }
+
+  Future<void> downloadInvoice(ProductOrderData order) async {
+    appStore.setLoading(true);
+    try {
+      final bytes = await downloadProductOrderInvoice(order.id.validate());
+      if (bytes.isEmpty) throw errorSomethingWentWrong;
+
+      final directory = await getApplicationDocumentsDirectory();
+      final safeOrderCode = order.displayCode
+          .validate(value: order.id.validate().toString())
+          .replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}product_invoice_$safeOrderCode.pdf',
+      );
+
+      await file.writeAsBytes(bytes, flush: true);
+
+      appStore.setLoading(false);
+      if (!mounted) return;
+      toast('Invoice downloaded');
+      PdfViewerComponent(pdfFile: file.path, isFile: true).launch(context);
+    } catch (e) {
+      appStore.setLoading(false);
+      if (!mounted) return;
+      toast(e.toString());
+    }
   }
 
   void showCollectProductOrderPaymentDialog(ProductOrderData order) {
@@ -1007,6 +1036,13 @@ class _ProductOrderDetailScreenState extends State<ProductOrderDetailScreen>
               onTap: () => showCollectProductOrderPaymentDialog(order),
             ).expand(),
           ],
+        );
+      }
+      if (order.effectiveDeliveryStatus == ProductOrderStatusKeys.completed) {
+        return AppButton(
+          text: 'Upload Proof',
+          color: primaryColor,
+          onTap: () => openProductProofScreen(order),
         );
       }
       return AppButton(

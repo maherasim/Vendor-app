@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:handyman_provider_flutter/components/vendor_guide_video_dialog.dart';
 import 'package:handyman_provider_flutter/fragments/booking_fragment.dart';
 import 'package:handyman_provider_flutter/fragments/notification_fragment.dart';
 import 'package:handyman_provider_flutter/main.dart';
+import 'package:handyman_provider_flutter/networks/rest_apis.dart';
 import 'package:handyman_provider_flutter/provider/fragments/provider_home_fragment.dart';
 import 'package:handyman_provider_flutter/provider/fragments/provider_profile_fragment.dart';
 import 'package:handyman_provider_flutter/provider/product_order/product_order_fragment.dart';
@@ -16,9 +19,11 @@ import 'package:handyman_provider_flutter/utils/common.dart';
 import 'package:handyman_provider_flutter/utils/configs.dart';
 import 'package:handyman_provider_flutter/utils/constant.dart';
 import 'package:handyman_provider_flutter/utils/extensions/string_extension.dart';
+import 'package:handyman_provider_flutter/utils/firebase_messaging_utils.dart';
 import 'package:handyman_provider_flutter/utils/images.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'package:playx_version_update/playx_version_update.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../booking_filter/booking_filter_screen.dart';
 import '../components/image_border_component.dart';
@@ -36,6 +41,7 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   int currentIndex = 0;
 
   DateTime? currentBackPressTime;
+  StreamSubscription<RemoteMessage>? orderNotificationSubscription;
 
   bool get isCurrentFragmentIsBooking =>
       getFragments()[currentIndex].runtimeType == BookingFragment().runtimeType;
@@ -86,6 +92,9 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       setState(() {});
     });
 
+    orderNotificationSubscription =
+        FirebaseMessaging.onMessage.listen(playIncomingProviderOrderAlert);
+
     await 3.seconds.delay;
     if (getBoolAsync(FORCE_UPDATE_PROVIDER_APP)) {
       setValue(AUTO_UPDATE, false);
@@ -102,6 +111,7 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   @override
   void dispose() {
+    orderNotificationSubscription?.cancel();
     super.dispose();
     LiveStream().dispose(LIVESTREAM_PROVIDER_ALL_BOOKING);
   }
@@ -127,11 +137,36 @@ class ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   }
 
   Future<void> openVendorGuideVideo() async {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => const VendorGuideVideoDialog(),
-    );
+    appStore.setLoading(true);
+    await getUploadedVideo().then((value) async {
+      appStore.setLoading(false);
+      if (!mounted) return;
+
+      if (VendorGuideVideoDialog.isYoutubeVideoData(value.data)) {
+        final youtubeUrl =
+            VendorGuideVideoDialog.getYoutubeWatchUrl(value.data);
+        if (youtubeUrl.validate().isEmpty) {
+          toast('No video found');
+          return;
+        }
+
+        final uri = Uri.parse(youtubeUrl);
+        if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+          toast('Could not open video');
+        }
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => const VendorGuideVideoDialog(),
+      );
+    }).catchError((e) {
+      appStore.setLoading(false);
+      if (!mounted) return;
+      toast(e.toString());
+    });
   }
 
   @override

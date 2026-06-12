@@ -2163,6 +2163,28 @@ Future<BaseResponseModel> productOrderCashPaymentPaid(Map request) async {
   return res;
 }
 
+Future<List<int>> downloadProductOrderInvoice(int orderId) async {
+  final response = await post(
+    buildBaseUrl('product-order-invoice'),
+    headers: buildHeaderTokens(),
+    body: jsonEncode({
+      'order_id': orderId,
+      'action': 'download',
+    }),
+  );
+
+  if (response.statusCode.isSuccessful()) {
+    return response.bodyBytes;
+  }
+
+  if (response.body.isJson()) {
+    final body = jsonDecode(response.body);
+    throw parseHtmlString(body['message'] ?? errorSomethingWentWrong);
+  }
+
+  throw errorSomethingWentWrong;
+}
+
 Future<BaseResponseModel> assignProductOrder(Map request) async {
   return BaseResponseModel.fromJson(
     await handleResponse(

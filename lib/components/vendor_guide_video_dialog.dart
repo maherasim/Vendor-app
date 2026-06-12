@@ -8,6 +8,80 @@ import 'package:webview_flutter/webview_flutter.dart';
 class VendorGuideVideoDialog extends StatefulWidget {
   const VendorGuideVideoDialog({Key? key}) : super(key: key);
 
+  static bool isYoutubeVideoData(UploadedVideoData? data) {
+    final type = data?.videoType.validate().toLowerCase();
+    return type == 'youtube' ||
+        data?.youtubeEmbedUrl.validate().isNotEmpty == true ||
+        data?.youtubeVideoId.validate().isNotEmpty == true ||
+        data?.youtubeUrl.validate().isNotEmpty == true;
+  }
+
+  static String getYoutubeWatchUrl(UploadedVideoData? data) {
+    if (!isYoutubeVideoData(data)) return '';
+
+    final videoId = data?.youtubeVideoId.validate();
+    if (videoId != null && videoId.isNotEmpty) {
+      return 'https://www.youtube.com/watch?v=$videoId';
+    }
+
+    final youtubeUrl = data?.youtubeUrl.validate();
+    if (youtubeUrl != null && youtubeUrl.isNotEmpty) {
+      return getYoutubeWatchUrlFromUrl(youtubeUrl);
+    }
+
+    return getYoutubeWatchUrlFromUrl(data?.videoUrl.validate() ?? '');
+  }
+
+  static String getYoutubeWatchUrlFromUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+
+    String videoId = uri.queryParameters['v'] ?? '';
+    if (videoId.isEmpty && uri.host.contains('youtu.be')) {
+      videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+    }
+    if (videoId.isEmpty && uri.pathSegments.contains('shorts')) {
+      final index = uri.pathSegments.indexOf('shorts');
+      videoId = uri.pathSegments.length > index + 1
+          ? uri.pathSegments[index + 1]
+          : '';
+    }
+    if (videoId.isEmpty && uri.pathSegments.contains('embed')) {
+      final index = uri.pathSegments.indexOf('embed');
+      videoId = uri.pathSegments.length > index + 1
+          ? uri.pathSegments[index + 1]
+          : '';
+    }
+
+    return videoId.isNotEmpty
+        ? 'https://www.youtube.com/watch?v=$videoId'
+        : url;
+  }
+
+  static String getYoutubeEmbedUrlFromUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+
+    String videoId = uri.queryParameters['v'] ?? '';
+    if (videoId.isEmpty && uri.host.contains('youtu.be')) {
+      videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+    }
+    if (videoId.isEmpty && uri.pathSegments.contains('shorts')) {
+      final index = uri.pathSegments.indexOf('shorts');
+      videoId = uri.pathSegments.length > index + 1
+          ? uri.pathSegments[index + 1]
+          : '';
+    }
+    if (videoId.isEmpty && uri.pathSegments.contains('embed')) {
+      final index = uri.pathSegments.indexOf('embed');
+      videoId = uri.pathSegments.length > index + 1
+          ? uri.pathSegments[index + 1]
+          : '';
+    }
+
+    return videoId.isNotEmpty ? 'https://www.youtube.com/embed/$videoId' : url;
+  }
+
   @override
   State<VendorGuideVideoDialog> createState() => _VendorGuideVideoDialogState();
 }
@@ -56,11 +130,7 @@ class _VendorGuideVideoDialogState extends State<VendorGuideVideoDialog> {
   }
 
   bool get isYoutubeVideo {
-    final type = videoData?.videoType.validate().toLowerCase();
-    return type == 'youtube' ||
-        videoData?.youtubeEmbedUrl.validate().isNotEmpty == true ||
-        videoData?.youtubeVideoId.validate().isNotEmpty == true ||
-        videoData?.youtubeUrl.validate().isNotEmpty == true;
+    return VendorGuideVideoDialog.isYoutubeVideoData(videoData);
   }
 
   String getPlayableVideoUrl() {
@@ -75,35 +145,11 @@ class _VendorGuideVideoDialogState extends State<VendorGuideVideoDialog> {
       return 'https://www.youtube.com/embed/$videoId';
     }
 
-    return getYoutubeEmbedUrl(
+    return VendorGuideVideoDialog.getYoutubeEmbedUrlFromUrl(
       videoData?.youtubeUrl.validate().isNotEmpty == true
           ? videoData!.youtubeUrl.validate()
           : videoData?.videoUrl.validate() ?? '',
     );
-  }
-
-  String getYoutubeEmbedUrl(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return url;
-
-    String videoId = uri.queryParameters['v'] ?? '';
-    if (videoId.isEmpty && uri.host.contains('youtu.be')) {
-      videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
-    }
-    if (videoId.isEmpty && uri.pathSegments.contains('shorts')) {
-      final index = uri.pathSegments.indexOf('shorts');
-      videoId = uri.pathSegments.length > index + 1
-          ? uri.pathSegments[index + 1]
-          : '';
-    }
-    if (videoId.isEmpty && uri.pathSegments.contains('embed')) {
-      final index = uri.pathSegments.indexOf('embed');
-      videoId = uri.pathSegments.length > index + 1
-          ? uri.pathSegments[index + 1]
-          : '';
-    }
-
-    return videoId.isNotEmpty ? 'https://www.youtube.com/embed/$videoId' : url;
   }
 
   String videoHtml(String videoUrl) {
